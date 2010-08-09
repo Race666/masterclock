@@ -1,6 +1,8 @@
 /*
 * Author: Michael Albert
 * Für externen 8Mhz Quarz
+Änderungen:
+V1.01: 09.08.2010 michael@albert-hetzles.de Setzen der Ausgänge in den Interrupt gelegt
  */
 /* TODO INTERRUPT */
 #include <avr/io.h>
@@ -16,7 +18,7 @@
 // Language
 #define LANG_DE
 // Version
-char sFirmwareVersion[10]="V1.0";
+char sFirmwareVersion[10]="V1.01";
 
 
 // Toogles a LED/Bit at Port and pin
@@ -449,8 +451,8 @@ char sPCControlCharEndParameter[2] = ",";
 int iTimeDiff=0;
 
 // Werden bei Pulse auf iPulsWidthIn100ms gesetzt und dann wieder herunter gezählt
-uint8_t iPulseWidthEven=0;
-uint8_t iPulseWidthOdd=0;
+volatile uint8_t iPulseWidthEven=0;
+volatile uint8_t iPulseWidthOdd=0;
 // Pulsweite
 uint8_t iPulsWidthIn100ms=4;
 // DCF77 Zeit
@@ -533,6 +535,7 @@ int main(void){
 	}
 	for(;;){
 		/*************** Begin Puls auf Ausgänge ausgeben****************/
+		/* In den Interrupt verlegt
 		if(iPulseWidthEven>0){
 			// Auf Nummer sicher gehen
 			RESET_PULSE_ODD;
@@ -548,7 +551,8 @@ int main(void){
 		} 
 		else{
 			RESET_PULSE_ODD;
-		}	
+		}
+		*/	
 		/***************  End Puls ausgeben ****************/
 		if(POWER_SUPPLY_ACTIVE){
 		//if(TRUE){
@@ -1487,8 +1491,24 @@ static void fExecuteEvery10telSecond(void){
 	static uint8_t iCountTimer0=0;
 	//uint8_t iOverflow=10;
 	// Teiler durch 10
-	if(iPulseWidthOdd>0){iPulseWidthOdd--;}
-	if(iPulseWidthEven>0){iPulseWidthEven--;}
+	if(iPulseWidthEven>0){
+		// Auf Nummer sicher gehen
+		RESET_PULSE_ODD;
+		SET_PULSE_EVEN;
+		iPulseWidthEven--;
+	} 
+	else{
+		RESET_PULSE_EVEN;
+	}
+	if(iPulseWidthOdd>0){
+		// Auf Nummer sicher gehen
+		RESET_PULSE_EVEN;
+		SET_PULSE_ODD;
+		iPulseWidthOdd--;
+	} 
+	else{
+		RESET_PULSE_ODD;
+	}	
 	if((iCountTimer0 % 5)==0){
 		// Toggle 1HZ PIN
 		TOGGLE_PIN(PORTD,PIN_1HZ_BLINK);
