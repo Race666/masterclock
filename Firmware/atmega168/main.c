@@ -2,8 +2,18 @@
 * Author: Michael Albert
 * Für externen 8Mhz Quarz
 Änderungen:
-V1.01: 09.08.2010 michael@albert-hetzles.de Setzen der Ausgänge in den Interrupt gelegt
- */
+V1.01	: 09.08.2010 michael@albert-hetzles.de Setzen der Ausgänge in den Interrupt gelegt
+V1.02.b1: 10.08.2010 michael@albert-hetzles.de Wird kein LCD Display verwendet wird der Status über LED's ausgegeben.
+V1.02.b2: 11.08.2010 michael@albert-hetzles.de Sekunden seit dem letzten DCF77 Komplettempfang werden mitgezählt
+V1.02.b3: 17.08.2010 michael@albert-hetzles.de Pullup Widerstand DCF77 Input ein.
+                                               Bugs bei LED Ausgabe beseitigt
+V1.02.b4  20.08.2010 michael@albert-hetzles.de DCF77: Bug beim Überlauf des Timer1 beseitig. Für einen gesetzten Interrupt (TOIE1) muß auch die jeweilige Routine (SIG_OVERFLOW1) definiert sein.
+												ansonsten restartet der controller
+V1.02.b5  20.08.2010 michael@albert-hetzles.de Für die Konvertierung von iDCF77LastReceivedDataPaketInSeconds itoa -> ltoa
+V1.02.b6  22.08.2010 michael@albert-hetzles.de Bug im Endanschlag (0xffff-> 0xffffffff) beim hochzählen von iDCF77LastReceivedDataPaketInSeconds behoben
+V1.02.rc1 22.08.2010 michael@albert-hetzles.de Reihenfolge der LED Ausgänge nochmal angepasst
+V1.02	  26.08.2010 michael@albert-hetzles.de V1.02 = V1.02.rc1, mit WinAVR 20100110 kompiliert
+*/
 /* TODO INTERRUPT */
 #include <avr/io.h>
 #include <avr/interrupt.h> 
@@ -11,18 +21,22 @@ V1.01: 09.08.2010 michael@albert-hetzles.de Setzen der Ausgänge in den Interrupt
 #include <avr/eeprom.h>
 #include <string.h>
 #include <stdlib.h>
-#include <lcd.h>
 #include "uart.h"
+#include "lcd.h"
 #include "terminal.h"
 
 // Language
 #define LANG_DE
 // Version
-char sFirmwareVersion[10]="V1.01";
+char sFirmwareVersion[10]="V1.02";
 
 
 // Toogles a LED/Bit at Port and pin
 #define TOGGLE_PIN(_port,_pin){((_port) & (1<<(_pin)))?((_port)&=~(1<<(_pin))):((_port)|=(1<<(_pin)));}
+// Set LED at Port and pin = VOltage to High 5V
+#define SET_LED(_port,_pin){((_port)|=(1<<(_pin)));}
+// Clear LED on at Port and pin = VOltage to Low 0V  
+#define CLEAR_LED(_port,_pin){((_port)&=~((1<<(_pin))));}
 // Timer 1 STOP
 #define TIMER0_STOP {TCCR0B &= ~((1<<CS02) | (1<<CS01) | (1<<CS00));TIMSK0 &= ~(1<<TOIE0);TCNT0=0;}
 #define TIMER0_START_DIV8 {TCNT0=0;TCCR0B |= (1<<CS00);TIMSK0 |= (1<<TOIE0);}
@@ -57,8 +71,26 @@ char sFirmwareVersion[10]="V1.01";
 // Macro zur Abfrage ob LCD Display an
 #define LCD_DISPLAY_ACTIVE ((PIND) & (1<<LCD_DISPLAY_ACTIVE_PIN))
 
+
 // 1HZ Blink Ausgang
 #define PIN_1HZ_BLINK PD5
+
+// Ausgänge für LED's definieren
+// Ausgang wenn DCF77 Daten empfangen werden
+// Blinken=warte auf Daten, leuchten=Empfange Daten, aus=DCF77 Off
+// Uhr syncronisiert
+#define PIN_CLOCK_IS_SYNCING PC5
+// DCF77 Health Status Leuchtet=DCF77 letzter DCF77 Empfang <1h; blinkt=DCF77 letzter DCF77 Empfang <24h;aus DCF77 letzter DCF77 Empfang >24h 
+#define PIN_LED_DCF77_HEALTH_STATE PC4
+// Gültiges DCF77 Paket empfangen
+#define PIN_LED_DCF77_RETURN_STATE_OK PC3
+// Ungültiges DCF77 Paket empfangen
+#define PIN_LED_DCF77_RETURN_STATE_ERROR PC2
+// Empfangsstatus blink=warte auf Daten, leuchtet=Empfange Daten
+#define PIN_LED_DCF77_CURRENT_STATUS PC1
+
+
+
 
 // For bool variables
 #define TRUE 1
@@ -130,6 +162,7 @@ typedef struct{
 	uint8_t iIsValidForSeconds;
 	uint8_t iDCF77LastResult;
 	uint8_t iDCF77Status;
+	uint32_t iDCF77LastReceivedDataPaketInSeconds;
 } TDCF77DateTime;
 
 enum eDCF77StatusCodes{
@@ -182,6 +215,7 @@ char prgsDCF77[] PROGMEM = "\r\n\x1b[37;1mDCF77\x1b[24C: \x1b[0;37m";
 char prgsDCF77LastRec[] PROGMEM = "aktiviert\r\n\x1b[37;1mLetztes DCF77 Empfangsdatum\x1b[2C: \x1b[0;37m";
 char prgsDCF77LastRes[] PROGMEM = "\r\n\x1b[37;1mDCF77 Letztes Ergebnis\x1b[7C: \x1b[0;37m";
 char prgsDCF77LastStat[] PROGMEM = "\r\n\x1b[37;1mDCF77 Status\x1b[17C: \x1b[0;37m";
+char prgsDCF77LastData[] PROGMEM = "\r\n\x1b[37;1mDCF77 letzter Komplettempfang: \x1b[0;37m";
 char prgsSyncMode[] PROGMEM = "\r\n\x1b[37;1mSynchronisationsmodus\x1b[8C: \x1b[0;37m";
 char prgsLCDDisplayIs[] PROGMEM = "\x1b[37;1mLCD Display ist\x1b[14C: \x1b[0;37m";
 char prgsOutputPulseWidth[] PROGMEM = "\x1b[37;1mAusgangsimpulsweite\x1b[10C: \x1b[0;37m";
@@ -222,6 +256,7 @@ char prgsLCDOff[] PROGMEM = "Aus";
 char prgsPulsWidthQuest[] PROGMEM = "Ausgangsimpulsweite aendern (in 100ms, moegliche Werte: 2|3|4|5|6|7|8): ";
 char prgsPulsWidthSetOutPre[] PROGMEM = "Ausgangsimpulsweite wurde auf ";
 char prgsPulsWidthSetOutPost[] PROGMEM = "00ms gesetzt.\r\n";
+char prgsSeconds[] PROGMEM = " Sekunden";
 // LCD Display Ausgaben:
 char sTimeOnSlaves[14] = "Nebenuhrzeit:";
 char sSyncingClocks[17] = "Synchronisiere..";
@@ -287,7 +322,8 @@ char prgsTimeOnClients[] PROGMEM = "\x1b[37;1mTime on slaves\x1b[15C: \x1b[0;37m
 char prgsMode[] PROGMEM = "\r\n\x1b[37;1mMode\x1b[25C: \x1b[0;37m";
 char prgsDCF77LastRec[] PROGMEM = "on\r\n\x1b[37;1mDCF77 Last received date\x1b[5C: \x1b[0;37m";
 char prgsDCF77LastRes[] PROGMEM = "\r\n\x1b[37;1mDCF77 Last result\x1b[12C: \x1b[0;37m";
-char prgsDCF77LastStat[] PROGMEM = "\r\n\x1b[37;1mDCF77 Status\x1b[17C: \x1b[0;37m";
+char prgsDCF77LastStat[] PROGMEM = "\r\n\x1b[37;1mDCF77 State\x1b[18C: \x1b[0;37m";
+char prgsDCF77LastData[] PROGMEM = "\r\n\x1b[37;1mDCF77 last complete receive\x1b[2C: \x1b[0;37m";
 char prgsDCF77[] PROGMEM = "\r\n\x1b[37;1mDCF77\x1b[24C: \x1b[0;37m";
 char prgsLastPowerF[] PROGMEM = "\x1b[37;1mLast Powerfault\x1b[14C: \x1b[0;37m";
 char prgsLastPowerFClientTime[] PROGMEM = "\x1b[37;1mSlavetime at last powerfault : \x1b[0;37m";
@@ -331,6 +367,7 @@ char prgsLCDOff[] PROGMEM = "Off";
 char prgsPulsWidthQuest[] PROGMEM = "Change outputpulsewidth(in 100ms, possible values: 2|3|4|5|6|7|8) to: ";
 char prgsPulsWidthSetOutPre[] PROGMEM = "Outputpulsewidth is set to ";
 char prgsPulsWidthSetOutPost[] PROGMEM = "00ms.";
+char prgsSeconds[] PROGMEM = " seconds";
 // LCD Display Ausgaben:
 char sTimeOnSlaves[16] = "Time on slaves:";
 char sSyncingClocks[17] = "Syncing clock...";
@@ -393,6 +430,7 @@ static void fExecuteEverySecond(void);
 static void fExecuteEvery10telSecond(void);
 static void fUpdateTimeString(char *psTime,TTime *ptClientTime);
 static void fInitIoports(void);
+static void fInitLEDIOPorts(void);
 static void fInitCounter(void);
 static int fReadUART(char *psInput);
 static int fConvertInput2Time(char *psIn,TTime *ptTime);
@@ -456,7 +494,7 @@ volatile uint8_t iPulseWidthOdd=0;
 // Pulsweite
 uint8_t iPulsWidthIn100ms=4;
 // DCF77 Zeit
-TDCF77DateTime tDCF77DateTime={0,0,0,0,0,0,0,TRUE,0,DCF77_NO_STATUS,DCF77_INIT}, tDisplayLastPowerFaultFull={0,0,0,0,0,0,0,TRUE,0,DCF77_NO_STATUS,DCF77_INIT};
+TDCF77DateTime tDCF77DateTime={0,0,0,0,0,0,0,TRUE,0,DCF77_NO_STATUS,DCF77_INIT,0xffffffff}, tDisplayLastPowerFaultFull={0,0,0,0,0,0,0,TRUE,0,DCF77_NO_STATUS,DCF77_INIT,0xffffffff};
 //tDCF77DateTime = {0,0,0,0,0,0,0,0,DCF77_NO_STATUS,DCF77_INIT};
 // Bitfeld für die DCF Daten, Global da für Displayausgabe
 static uint8_t aDCFData[60];
@@ -532,28 +570,9 @@ int main(void){
 	}
 	else{
 		bLCDDisplayOn=FALSE;
+		fInitLEDIOPorts();
 	}
 	for(;;){
-		/*************** Begin Puls auf Ausgänge ausgeben****************/
-		/* In den Interrupt verlegt
-		if(iPulseWidthEven>0){
-			// Auf Nummer sicher gehen
-			RESET_PULSE_ODD;
-			SET_PULSE_EVEN;
-		} 
-		else{
-			RESET_PULSE_EVEN;
-		}
-		if(iPulseWidthOdd>0){
-			// Auf Nummer sicher gehen
-			RESET_PULSE_EVEN;
-			SET_PULSE_ODD;
-		} 
-		else{
-			RESET_PULSE_ODD;
-		}
-		*/	
-		/***************  End Puls ausgeben ****************/
 		if(POWER_SUPPLY_ACTIVE){
 		//if(TRUE){
 			/******** Begin Display Ausgabe ********/
@@ -708,6 +727,64 @@ int main(void){
 				}
 				bUpdateDisplay=FALSE;
 			}
+			// Kein LCD Display -> LED Ausgabe
+			else if(bUpdateDisplay){
+				// LED's Updaten
+				if(bDCF77){
+					if(tDCF77DateTime.iDCF77Status==DCF77_INIT){
+						CLEAR_LED(PORTC,PIN_LED_DCF77_CURRENT_STATUS);
+					}
+					else if(tDCF77DateTime.iDCF77Status==DCF77_SYNCING){
+						SET_LED(PORTC,PIN_LED_DCF77_CURRENT_STATUS);
+					}
+					else if(tDCF77DateTime.iDCF77Status==DCF77_WAIT_FOR_SYNCING){
+						TOGGLE_PIN(PORTC,PIN_LED_DCF77_CURRENT_STATUS);
+					}
+					else{
+						CLEAR_LED(PORTC,PIN_LED_DCF77_CURRENT_STATUS);
+					}
+					if( (tDCF77DateTime.iDCF77LastResult==DCF77_PARITY_ERROR_HOUR)||
+						(tDCF77DateTime.iDCF77LastResult==DCF77_PARITY_ERROR_MINUTE)||
+						(tDCF77DateTime.iDCF77LastResult==DCF77_CYCLE_ERROR)||
+						(tDCF77DateTime.iDCF77LastResult==DCF77_PULSE_RANGE_ERROR)||
+						(tDCF77DateTime.iDCF77LastResult==DCF77_PARITY_ERROR_HOUR)){
+						SET_LED(PORTC,PIN_LED_DCF77_RETURN_STATE_ERROR);
+						CLEAR_LED(PORTC,PIN_LED_DCF77_RETURN_STATE_OK);
+					}
+					else if((tDCF77DateTime.iDCF77LastResult==DCF77_RECEIVE_COMPLETE_SUCCESSFULLY)&&(tDCF77DateTime.iIsValidForSeconds>0)){
+					//else if(tDCF77DateTime.iIsValidForSeconds>0){
+						CLEAR_LED(PORTC,PIN_LED_DCF77_RETURN_STATE_ERROR);
+						SET_LED(PORTC,PIN_LED_DCF77_RETURN_STATE_OK);
+					}
+					else{
+						CLEAR_LED(PORTC,PIN_LED_DCF77_RETURN_STATE_OK);
+						CLEAR_LED(PORTC,PIN_LED_DCF77_RETURN_STATE_ERROR);
+					}
+					if(tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds>86400){
+						CLEAR_LED(PORTC,PIN_LED_DCF77_HEALTH_STATE);
+					} 
+					else if((tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds<=86400)&&(tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds>3600)){
+						TOGGLE_PIN(PORTC,PIN_LED_DCF77_HEALTH_STATE);
+					}
+					else{
+						SET_LED(PORTC,PIN_LED_DCF77_HEALTH_STATE);
+					}
+				}
+				else{
+					CLEAR_LED(PORTC,PIN_LED_DCF77_CURRENT_STATUS);
+					CLEAR_LED(PORTC,PIN_LED_DCF77_HEALTH_STATE);
+					CLEAR_LED(PORTC,PIN_LED_DCF77_RETURN_STATE_OK);
+					CLEAR_LED(PORTC,PIN_LED_DCF77_RETURN_STATE_ERROR);
+				}
+				if(stNewTimeForClients.bReady4Sync==TRUE){
+					SET_LED(PORTC,PIN_CLOCK_IS_SYNCING);
+					//
+				}
+				else{
+					CLEAR_LED(PORTC,PIN_CLOCK_IS_SYNCING);
+				}
+				bUpdateDisplay=FALSE;
+			}
 			/******** End Display Ausgabe ********/
 
 			/*************** Begin Serielles Userinterface ****************/
@@ -850,7 +927,7 @@ int main(void){
 						// Get DCF77 Time
 						else if (strcmp(sParameter,"gd7")==0){
 						// Block 3 DCF77
-							// Year, Month, day, weekday, Hour, Minute, Second, MEZ, Valid4Seconds, LastResult, Status 
+							// Year, Month, day, weekday, Hour, Minute, Second, MEZ, Valid4Seconds, LastResult, Status, LetzterKomplett Empfang in Sekunden 
 							itoa(tDCF77DateTime.iYear,sTemp,10);	
 							strcpy(sOutputLine,sTemp);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
@@ -886,7 +963,10 @@ int main(void){
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
 							itoa(tDCF77DateTime.iDCF77Status,sTemp,10);
 							strcat(sOutputLine,sTemp);
-							strncat(sOutputLine,sPCControlCharEndBlock,2);
+							strncat(sOutputLine,sPCControlCharEndParameter,2);
+							ltoa(tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds,sTemp,10);
+							strcpy(sOutputLine,sTemp);
+							strncat(sOutputLine,sPCControlCharEndBlock,2);							
 							uart_puts(sOutputLine);		
 							uart_puts_p(prgsReturnOK);
 						}
@@ -1115,6 +1195,12 @@ int main(void){
 											//strcat(sOutputLine,"LOW");
 											uart_puts("=0");
 										}										
+									}
+									if(tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds!=0xffffffff){
+										uart_puts_p(prgsDCF77LastData);
+										ltoa(tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds,sTemp,10);
+										uart_puts(sTemp);
+										uart_puts_p(prgsSeconds);
 									}
 									uart_puts("\r\n");
 								}
@@ -1430,6 +1516,10 @@ static void fInitIoports(void){
 	// Interrupt 1 (PD3)
 	EIMSK |= (1<<INT1);
 }
+static void fInitLEDIOPorts(void){
+	PORTD &= ~((1<<PIN_LED_DCF77_CURRENT_STATUS)|(1<<PIN_LED_DCF77_RETURN_STATE_OK)|(1<<PIN_LED_DCF77_RETURN_STATE_ERROR)|(1<<PIN_LED_DCF77_HEALTH_STATE)|(1<<PIN_CLOCK_IS_SYNCING));
+	DDRC |= ((1<<PIN_LED_DCF77_CURRENT_STATUS)|(1<<PIN_LED_DCF77_RETURN_STATE_OK)|(1<<PIN_LED_DCF77_RETURN_STATE_ERROR)|(1<<PIN_LED_DCF77_HEALTH_STATE)|(1<<PIN_CLOCK_IS_SYNCING));
+}
 // init counter
 static void fInitCounter(void){
 	//CPU Takt/8
@@ -1509,10 +1599,6 @@ static void fExecuteEvery10telSecond(void){
 	else{
 		RESET_PULSE_ODD;
 	}	
-	if((iCountTimer0 % 5)==0){
-		// Toggle 1HZ PIN
-		TOGGLE_PIN(PORTD,PIN_1HZ_BLINK);
-	}
 	if(iCountTimer0<9){
 		iCountTimer0++;
 	}
@@ -1521,6 +1607,10 @@ static void fExecuteEvery10telSecond(void){
 		// Funktion alle 1sec aufrufen
 		fExecuteEverySecond();
 	}
+	if((iCountTimer0 % 5)==0){
+		// Toggle 1HZ PIN
+		TOGGLE_PIN(PORTD,PIN_1HZ_BLINK);
+	}	
 }
 static void fExecuteEverySecond(void){
 	// Synctime für die Zeit des syncs weiterzählen
@@ -1588,6 +1678,9 @@ static void fExecuteEverySecond(void){
 	}
 	// Falls DCF77 Zeit gültig, Zeit der Gültigkeit um 1Sekunde verringern
 	if(tDCF77DateTime.iIsValidForSeconds>0){tDCF77DateTime.iIsValidForSeconds--;}
+	if(tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds<0xffffffff){
+		tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds++;
+	}
 	bUpdateDisplay=TRUE;
 }
 
@@ -1775,8 +1868,8 @@ static void fInitDCF77(void){
 	tDCF77DateTime.iDCF77Status=DCF77_INIT;
 	// Als Eingang
 	DDRD &= ~(1<<DCF77_INPUT_PIN);
-	// Pullup aus
-	PORTD &= ~(1<<DCF77_INPUT_PIN);
+	// Pullup ein
+	PORTD |= (1<<DCF77_INPUT_PIN);
 	// ISC00 und ISC01 nicht gesetzt = Interrupt bei LowLevel
 	// Bei jeder Änderung egal ob fallende oder steigende Flanke einen Interrupt auslösen
 	EICRA |= (1<<ISC00);
@@ -1806,6 +1899,12 @@ static uint8_t fParityOdd(uint8_t aBitField[], uint8_t iStartField, uint8_t iSto
 		iParity^=aBitField[iLoop];
 	}
 	return(iParity);
+}
+SIGNAL(SIG_OVERFLOW1){
+	//TOGGLE_LED(PORTB,PB0);
+	TIMER1_STOP;
+	// Auf Max Couter setzen damit DCF77 Error erkannt wird
+	TCNT1=0xffff;
 }
 SIGNAL(SIG_INTERRUPT0){
 	// Pulsbreite des DCF Signals
@@ -1922,6 +2021,7 @@ SIGNAL(SIG_INTERRUPT0){
 					tDCF77DateTime.iIsValidForSeconds=DCF77_IS_VALID_FOR_SECONDS;
 					tDCF77DateTime.iDCF77LastResult=DCF77_RECEIVE_COMPLETE_SUCCESSFULLY;
 					tDCF77DateTime.iDCF77Status=DCF77_WAIT_FOR_SYNCING;	
+					tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds=0;
 				}
 				else{
 					tDCF77DateTime.iDCF77LastResult=DCF77_PARITY_ERROR_DATE;
