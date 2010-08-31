@@ -13,6 +13,7 @@ V1.02.b5  20.08.2010 michael@albert-hetzles.de Für die Konvertierung von iDCF77L
 V1.02.b6  22.08.2010 michael@albert-hetzles.de Bug im Endanschlag (0xffff-> 0xffffffff) beim hochzählen von iDCF77LastReceivedDataPaketInSeconds behoben
 V1.02.rc1 22.08.2010 michael@albert-hetzles.de Reihenfolge der LED Ausgänge nochmal angepasst
 V1.02	  26.08.2010 michael@albert-hetzles.de V1.02 = V1.02.rc1, mit WinAVR 20100110 kompiliert
+V1.03	  26.08.2010 michael@albert-hetzles.de Bug behoben beimn LED enzeigen  && ! bLCDDisplayOn hinzugefügt
 */
 /* TODO INTERRUPT */
 #include <avr/io.h>
@@ -21,14 +22,14 @@ V1.02	  26.08.2010 michael@albert-hetzles.de V1.02 = V1.02.rc1, mit WinAVR 20100
 #include <avr/eeprom.h>
 #include <string.h>
 #include <stdlib.h>
+#include <lcd.h>
 #include "uart.h"
-#include "lcd.h"
 #include "terminal.h"
 
 // Language
 #define LANG_DE
 // Version
-char sFirmwareVersion[10]="V1.02";
+char sFirmwareVersion[10]="V1.03";
 
 
 // Toogles a LED/Bit at Port and pin
@@ -728,7 +729,7 @@ int main(void){
 				bUpdateDisplay=FALSE;
 			}
 			// Kein LCD Display -> LED Ausgabe
-			else if(bUpdateDisplay){
+			else if(bUpdateDisplay && ! bLCDDisplayOn){
 				// LED's Updaten
 				if(bDCF77){
 					if(tDCF77DateTime.iDCF77Status==DCF77_INIT){
