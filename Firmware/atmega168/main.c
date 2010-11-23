@@ -14,6 +14,8 @@ V1.02.b6  22.08.2010 michael@albert-hetzles.de Bug im Endanschlag (0xffff-> 0xff
 V1.02.rc1 22.08.2010 michael@albert-hetzles.de Reihenfolge der LED Ausgänge nochmal angepasst
 V1.02	  26.08.2010 michael@albert-hetzles.de V1.02 = V1.02.rc1, mit WinAVR 20100110 kompiliert
 V1.03	  26.08.2010 michael@albert-hetzles.de Bug behoben beimn LED enzeigen  && ! bLCDDisplayOn hinzugefügt
+V1.04	  23.11.2010 michael@albert-hetzles.de Bug beim Kommando nst behoben, syncuhr wurde weitergezählt
+											   Neue fReadUART Funktion mit STRG-C	
 */
 /* TODO INTERRUPT */
 #include <avr/io.h>
@@ -29,7 +31,7 @@ V1.03	  26.08.2010 michael@albert-hetzles.de Bug behoben beimn LED enzeigen  && 
 // Language
 #define LANG_DE
 // Version
-char sFirmwareVersion[10]="V1.03";
+char sFirmwareVersion[10]="V1.04";
 
 
 // Toogles a LED/Bit at Port and pin
@@ -134,6 +136,8 @@ char sFirmwareVersion[10]="V1.03";
 // Wie oft die Displayseite wechseln
 #define CHANGE_DISPLAY_PAGE_IN_SEC 5
 
+// Max Input chars für die Konsole
+#define MAX_INPUT_CHARACTERS 33
 
 // Datatype für Uhren(Clientzeit, Synczeit), bReady4Sync wird nur für die synczeit gebraucht
 // um anzuzeigen das ein sync durchzuführen ist. 
@@ -433,7 +437,7 @@ static void fUpdateTimeString(char *psTime,TTime *ptClientTime);
 static void fInitIoports(void);
 static void fInitLEDIOPorts(void);
 static void fInitCounter(void);
-static int fReadUART(char *psInput);
+int fReadUART(char *psInput,uint8_t iMaxInCharacters);
 static int fConvertInput2Time(char *psIn,TTime *ptTime);
 static int fTimeDiffFor12hScope(TTime *ttIsTime, TTime *ttNewTime);
 static int fTimeDiffFor24hScope(TTime *ttIsTime, TTime *ttNewTime);
@@ -511,6 +515,7 @@ uint8_t bLCDDisplayOn = TRUE;
 
 
 int main(void){
+	while(! eeprom_is_ready());
 	// Gespeicherte Clientzeit aus eeprom lesen
 	stClientTime.iMinute=eeprom_read_byte(&ee_iMinuteClientTime);
 	if(stClientTime.iMinute>=0 && stClientTime.iMinute<=59){
@@ -790,9 +795,14 @@ int main(void){
 
 			/*************** Begin Serielles Userinterface ****************/
 			/*************** Begin Shell ****************/
-			if(fReadUART(sInput)){
+			if(fReadUART(sInput,sizeof(sInput))){
+				if(strcmp(sInput,"\3")==0){
+					iMenuPosition=0;
+					uart_puts("STRG-C\n\r");
+					sInput[0]='\0';
+				}
 				// 0= Kommandoeingabe, Hauptmenu
-				if(fSplitCommandFromParameter(sInput,sCommand,sParameter)){
+				else if(fSplitCommandFromParameter(sInput,sCommand,sParameter)){
 					//Direct Command and parameter
 					if (strcmp(sCommand,"_smt")==0){
 						if (fConvertInput2Time(sParameter,&stClientTime)){
@@ -814,6 +824,7 @@ int main(void){
 					}
 					else if (strcmp(sCommand,"_nst")==0){
 						if (fConvertInput2Time(sParameter,&stNewTimeForClients)){
+							stNewTimeForClients.bIncTime=FALSE;
 							stNewTimeForClients.bReady4Sync=TRUE;
 							uart_puts_p(prgsReturnOK);
 						}
@@ -1280,6 +1291,7 @@ int main(void){
 							uart_puts(TERM_FG_GREEN_BRIGHT);
 							uart_puts_p(prgsPrintok);
 							uart_puts(TERM_RESET);
+							stNewTimeForClients.bIncTime=FALSE;
 							stNewTimeForClients.bReady4Sync=TRUE;
 						}
 						else{
@@ -1343,7 +1355,6 @@ int main(void){
 							else{
 								uart_puts(TERM_FG_WHITE_BRIGHT);
 								uart_puts_p(prgsSetHalted);
-								uart_puts("\r\n");
 								uart_puts(TERM_RESET);
 								stClientTime.bIncTime=FALSE;
 								eeprom_write_byte(&ee_bClientClockPaused,TRUE);
@@ -1687,7 +1698,10 @@ static void fExecuteEverySecond(void){
 
 // Liest von uart hängt die gelesen Zeichen an psInput an
 // Liefert TRUE wenn die Eingabe abgeschlossen wurde, ansonsten 1
-static int fReadUART(char *psInput){
+int fReadUART(char *psInput,uint8_t iMaxInCharacters){
+		uint8_t iMaxChars=0;
+		static char sInput[MAX_INPUT_CHARACTERS];
+		iMaxChars = MAX_INPUT_CHARACTERS<iMaxInCharacters ? MAX_INPUT_CHARACTERS : iMaxInCharacters;
 		unsigned int iReceive;
 		iReceive=uart_getc();
 		// Errors
@@ -1702,24 +1716,28 @@ static int fReadUART(char *psInput){
 		// Data available
 		else{
 			// echo char
-			if (UART_ECHO){uart_putc((char)iReceive);}
 			// ...until Return Character is 0x0d = 13 is received
 			if ((char)iReceive=='\r'){
-				if (UART_ECHO){uart_putc('\n');}
-				return(TRUE);				
+				if (UART_ECHO){uart_puts("\r\n");}
+				strcpy(psInput,sInput);
+				sInput[0]='\0';
+				return(TRUE);
 			}
 			// STRG-C
-			else if(iReceive==3){
-				strcpy(psInput,"");
+			else if((char)iReceive==3){
+				//strcpy(sInput,"");
+				strcpy(psInput,"\3");
+				sInput[0]='\0';
 				return(TRUE);
 			}
 			else {
+				if (UART_ECHO){uart_putc((char)iReceive);}
 				// Only if enough space in sInput free
-				if(strlen(psInput)<15){
-					// Concatinate all characters to a string....., we need only the lower byte. 
+				if(strlen(sInput)<MAX_INPUT_CHARACTERS-1){
+					// Concatinate all characters to a string....., we need only the lower byte.
 					// Valid character or return??
 					if ((((uint8_t)iReceive >= 32)&&((uint8_t)iReceive <= 126)) || ((uint8_t)iReceive==13)){
-						strncat(psInput,(char*)&iReceive,1);
+						strcat(sInput,(char*)&iReceive);
 					}
 				}
 				return(FALSE);
