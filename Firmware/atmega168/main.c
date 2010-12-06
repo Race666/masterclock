@@ -16,6 +16,7 @@ V1.02	  26.08.2010 michael@albert-hetzles.de V1.02 = V1.02.rc1, mit WinAVR 20100
 V1.03	  26.08.2010 michael@albert-hetzles.de Bug behoben beimn LED enzeigen  && ! bLCDDisplayOn hinzugefügt
 V1.04	  23.11.2010 michael@albert-hetzles.de Bug beim Kommando nst behoben, syncuhr wurde weitergezählt
 											   Neue fReadUART Funktion mit STRG-C	
+V1.05	  06.12.2010 michael@albert-hetzles.de Bug im  Protokoll gd7 behoben										   
 */
 /* TODO INTERRUPT */
 #include <avr/io.h>
@@ -31,7 +32,7 @@ V1.04	  23.11.2010 michael@albert-hetzles.de Bug beim Kommando nst behoben, sync
 // Language
 #define LANG_DE
 // Version
-char sFirmwareVersion[10]="V1.04";
+char sFirmwareVersion[10]="V1.05";
 
 
 // Toogles a LED/Bit at Port and pin
@@ -976,6 +977,7 @@ int main(void){
 							itoa(tDCF77DateTime.iDCF77Status,sTemp,10);
 							strcat(sOutputLine,sTemp);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
+							uart_puts(sOutputLine);
 							ltoa(tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds,sTemp,10);
 							strcpy(sOutputLine,sTemp);
 							strncat(sOutputLine,sPCControlCharEndBlock,2);							
