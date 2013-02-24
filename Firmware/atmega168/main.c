@@ -16,7 +16,10 @@ V1.02	  26.08.2010 michael@albert-hetzles.de V1.02 = V1.02.rc1, mit WinAVR 20100
 V1.03	  26.08.2010 michael@albert-hetzles.de Bug behoben beimn LED enzeigen  && ! bLCDDisplayOn hinzugefügt
 V1.04	  23.11.2010 michael@albert-hetzles.de Bug beim Kommando nst behoben, syncuhr wurde weitergezählt
 											   Neue fReadUART Funktion mit STRG-C	
-V1.05	  06.12.2010 michael@albert-hetzles.de Bug im  Protokoll gd7 behoben										   
+V1.05	  06.12.2010 michael@albert-hetzles.de Bug im  Protokoll gd7 behoben		
+V1.06b2   25.10.2011 michael@albert-hetzles.de Trotz bDCF77=false wurde syncronisiert		
+          20.12.2012 michael@albert-hetzles.de Peridodenzeit der Impulse beim synchronieren änderbar, default 1sec	
+V1.06b4	  24.02.2013 michael@albert-hetzles.de Bug!!! Inkonsitenz Schaltplan und Programm OUTPUT_PULSE_EVEN PB0 -> PD6	   
 */
 /* TODO INTERRUPT */
 #include <avr/io.h>
@@ -32,7 +35,7 @@ V1.05	  06.12.2010 michael@albert-hetzles.de Bug im  Protokoll gd7 behoben
 // Language
 #define LANG_DE
 // Version
-char sFirmwareVersion[10]="V1.05";
+char sFirmwareVersion[10]="V1.06b4";
 
 
 // Toogles a LED/Bit at Port and pin
@@ -56,15 +59,15 @@ char sFirmwareVersion[10]="V1.05";
 // Ausgang ungerade Minute
 #define OUTPUT_PULSE_ODD PD7
 // Ausgang gerade Minute
-#define OUTPUT_PULSE_EVEN PB0
+#define OUTPUT_PULSE_EVEN PD6
 // Ausgang gerade Minute an
 #define SET_PULSE_ODD {PORTD|=(1<<OUTPUT_PULSE_ODD);}
 // Ausgang ungerade Minute an
-#define SET_PULSE_EVEN {PORTB|=(1<<OUTPUT_PULSE_EVEN);}
+#define SET_PULSE_EVEN {PORTD|=(1<<OUTPUT_PULSE_EVEN);}
 // Ausgang ungerade Minute aus
 #define RESET_PULSE_ODD {PORTD&=~(1<<OUTPUT_PULSE_ODD);}
 // Ausgang gerade Minute aus
-#define RESET_PULSE_EVEN {PORTB&=~(1<<OUTPUT_PULSE_EVEN);}
+#define RESET_PULSE_EVEN {PORTD&=~(1<<OUTPUT_PULSE_EVEN);}
 
 // Eingang für die Netzspannungsausfallerkennung
 #define POWER_SUPPLY_ACTIVE_PIN PD3
@@ -140,6 +143,8 @@ char sFirmwareVersion[10]="V1.05";
 // Max Input chars für die Konsole
 #define MAX_INPUT_CHARACTERS 33
 
+// Wieviel Sekunden soll beim synchronisieren gewartet werden bis der Minutenzeiger weiter gestellt wird
+#define SYNC_SECONDS_TO_WAIT_TO_NEXT_MINUTE 1
 // Datatype für Uhren(Clientzeit, Synczeit), bReady4Sync wird nur für die synczeit gebraucht
 // um anzuzeigen das ein sync durchzuführen ist. 
 typedef struct{
@@ -453,6 +458,8 @@ static void fGetLastDCF77StatusString(uint8_t iRes,char *psStatMsg);
 static void fGetShortDayString(uint8_t iDayNumber,char *psShortDay);
 static void fUInt8To2CharStr(uint8_t iNum, char *s2CharStr);
 static void fLCDPutStringCenter(char *sOut,uint8_t iLineNumber);
+static void fCopyStringCenter(char *sString, char *sOut, uint8_t iMaxStrLength);
+static void fGetCenterAndFilledUpString(char *sIn, char *sOut,uint8_t iLength);
 static uint8_t fSplitCommandFromParameter(char *psInput, char* psCommand, char* psParameter);
 static uint8_t fCheckAndConvertPulsWidth(char *sIn,uint8_t *iOut);
 static void fPrintIntToUART(char *sIn,int16_t iIn);
@@ -485,8 +492,10 @@ uint8_t iDisplayPage=0;
 volatile uint8_t bUpdateDisplay=FALSE;
 uint8_t iDisplayPageSecCount=0;
 // Temp Variable für Displayausgabe
-char sTemp[17]="";
-char sOutputLine[17]="";
+char sTemp[LCD_DISP_LENGTH+1]="";
+char sOutputLine[LCD_DISP_LENGTH+1]="";
+char sDisplayLine1[LCD_DISP_LENGTH+1]="";
+char sDisplayLine2[LCD_DISP_LENGTH+1]="";
 uint8_t iTemp=0;
 // Steuerzeichen für die PC Kopplung
 char sPCControlCharEndBlock[2] = ";";
@@ -583,61 +592,71 @@ int main(void){
 		if(POWER_SUPPLY_ACTIVE){
 		//if(TRUE){
 			/******** Begin Display Ausgabe ********/
-			if(bUpdateDisplay && bLCDDisplayOn){
+			/* Begin Strings für die AUsgabe erzeugen */
 				if (iDisplayPage==0){
-					lcd_clrscr();
+					//lcd_clrscr();
 					//lcd_gotoxy(0,0);
 					fUpdateTimeString(sTime,&stClientTime);
 					//lcd_puts("TIME ON CLIENTS:");
-					fLCDPutStringCenter(sTimeOnSlaves,0);
+					// fLCDPutStringCenter(sTimeOnSlaves,0);
+					fGetCenterAndFilledUpString(sTimeOnSlaves,sDisplayLine1,sizeof(sDisplayLine1)-1);
 					//lcd_gotoxy(0,1);
 					//lcd_puts(sTime);
-					fLCDPutStringCenter(sTime,1);
+					//fLCDPutStringCenter(sTime,1);
+					fGetCenterAndFilledUpString(sTime,sDisplayLine2,sizeof(sDisplayLine2)-1);
+					//fGetCenterAndFilledUpString()
 				}
 				if(iDisplayPage==1){
 					if(stNewTimeForClients.bReady4Sync){
-						lcd_clrscr();
+						//lcd_clrscr();
 						//lcd_gotoxy(0,0);
 						//lcd_puts("Syncing clock...");
-						fLCDPutStringCenter(sSyncingClocks,0);
+						//fLCDPutStringCenter(sSyncingClocks,0);
+						fGetCenterAndFilledUpString(sSyncingClocks,sDisplayLine1,sizeof(sDisplayLine1)-1);
 						//lcd_gotoxy(0,1);
 						itoa(iTimeDiff,sOutputLine,10);
 						//lcd_puts(sOutputLine);
 						//lcd_puts(" min left.");
 						strcat(sOutputLine,sMinutesLeft);
-						fLCDPutStringCenter(sOutputLine,1);
+						// fLCDPutStringCenter(sOutputLine,1);
+						fGetCenterAndFilledUpString(sOutputLine,sDisplayLine2,sizeof(sDisplayLine2)-1);
 					}
 					else{
 						iDisplayPage++;
 					}
 				}
 				if(iDisplayPage==2){
-					lcd_clrscr();
+					//lcd_clrscr();
 					//lcd_gotoxy(0,0);
 					//lcd_puts("DCF77: ");
-					fLCDPutStringCenter(sDCF77mode,0);
+					// fLCDPutStringCenter(sDCF77mode,0);
+					fGetCenterAndFilledUpString(sDCF77mode,sDisplayLine1,sizeof(sDisplayLine1)-1);
 					if(bDCF77){
 						//lcd_gotoxy(0,1);
-						strcpy(sOutputLine,sDCF77StateON);
+						fGetCenterAndFilledUpString(sDCF77StateON,sDisplayLine2,sizeof(sDisplayLine2)-1);
+						//strcpy(sOutputLine,sDCF77StateON);
 						//lcd_puts(sOutputLine);
-						fLCDPutStringCenter(sOutputLine,1);
+						//fLCDPutStringCenter(sOutputLine,1);
 					}
 					else{
 						//lcd_gotoxy(0,1);
 						//lcd_puts("OFF");
-						fLCDPutStringCenter(sDCF77StateOff,1);
+						//fLCDPutStringCenter(sDCF77StateOff,1);
+						fGetCenterAndFilledUpString(sDCF77StateOff,sDisplayLine2,sizeof(sDisplayLine2)-1);
 					}
 				}	
 				if(iDisplayPage==3){
-					lcd_clrscr();
+					//lcd_clrscr();
 					//lcd_gotoxy(0,0);
 					//lcd_puts("DCF77 STATUS: ");
-					fLCDPutStringCenter(sDCF77State,0);
+					//fLCDPutStringCenter(sDCF77State,0);
+					fGetCenterAndFilledUpString(sDCF77State,sDisplayLine1,sizeof(sDisplayLine1)-1);
 					if(bDCF77){
 						fGetLastDCF77StatusString(tDCF77DateTime.iDCF77Status,sTemp);
-						strcpy(sOutputLine,sTemp);
+						//strcpy(sOutputLine,sTemp);
 						//lcd_puts(sOutputLine);
-						fLCDPutStringCenter(sOutputLine,1);
+						//fLCDPutStringCenter(sOutputLine,1);
+						fGetCenterAndFilledUpString(sTemp,sDisplayLine2,sizeof(sDisplayLine2)-1);
 					}
 					else{
 						iDisplayPage++;
@@ -645,14 +664,16 @@ int main(void){
 				}				
 				if(iDisplayPage==4){
 					if(bDCF77){
-						lcd_clrscr();
+						//lcd_clrscr();
 						//lcd_gotoxy(0,0);
 						//lcd_puts("DCF LAST RESULT:");
-						fLCDPutStringCenter(sDCF77LastResult,0);
+						//fLCDPutStringCenter(sDCF77LastResult,0);
+						fGetCenterAndFilledUpString(sDCF77LastResult,sDisplayLine1,sizeof(sDisplayLine1)-1);
 						fGetLastDCF77ResultString(tDCF77DateTime.iDCF77LastResult,sOutputLine);
 						//lcd_gotoxy(0,1);
 						//lcd_puts(sOutputLine);
-						fLCDPutStringCenter(sOutputLine,1);
+						//fLCDPutStringCenter(sOutputLine,1);
+						fGetCenterAndFilledUpString(sOutputLine,sDisplayLine2,sizeof(sDisplayLine2)-1);
 					}			
 					else{
 						iDisplayPage++;
@@ -660,8 +681,9 @@ int main(void){
 				}
 				if(iDisplayPage==5){
 					if(bDCF77 && tDCF77DateTime.iDCF77Status==DCF77_SYNCING && iDCF77BitPointer>=1 && iDCF77BitPointer<=59){
-						lcd_clrscr();
-						fLCDPutStringCenter(sDCF77SyncStatus,0);
+						//lcd_clrscr();
+						//fLCDPutStringCenter(sDCF77SyncStatus,0);
+						fGetCenterAndFilledUpString(sDCF77SyncStatus,sDisplayLine1,sizeof(sDisplayLine1)-1);
 						strcpy(sOutputLine,"BIT:");
 						fUInt8To2CharStr(iDCF77BitPointer-1,sTemp);
 						strcat(sOutputLine,sTemp);
@@ -677,7 +699,8 @@ int main(void){
 						//fGetLastDCF77ResultString(tDCF77DateTime.iDCF77LastResult,sOutputLine);
 						//lcd_gotoxy(0,1);
 						//lcd_puts(sOutputLine);
-						fLCDPutStringCenter(sOutputLine,1);
+						//fLCDPutStringCenter(sOutputLine,1);
+						fGetCenterAndFilledUpString(sOutputLine,sDisplayLine2,sizeof(sDisplayLine2)-1);
 					}			
 					else{
 						iDisplayPage++;
@@ -685,7 +708,7 @@ int main(void){
 				}
 				if(iDisplayPage==6){
 					if(bDCF77 && tDCF77DateTime.iIsValidForSeconds>0){
-						lcd_clrscr();
+						//lcd_clrscr();
 						strcpy(sOutputLine,"DCF77:");
 						fUInt8To2CharStr(tDCF77DateTime.iHour,sTemp);
 						strcat(sOutputLine,sTemp);
@@ -699,7 +722,8 @@ int main(void){
 						else{
 							strcat(sOutputLine,"MESZ");
 						}
-						fLCDPutStringCenter(sOutputLine,0);
+						//fLCDPutStringCenter(sOutputLine,0);
+						fGetCenterAndFilledUpString(sOutputLine,sDisplayLine1,sizeof(sDisplayLine1)-1);
 						fGetShortDayString(tDCF77DateTime.iWeekday,sOutputLine);
 						strcat(sOutputLine," - ");
 						fUInt8To2CharStr(tDCF77DateTime.iDay,sTemp);
@@ -710,28 +734,39 @@ int main(void){
 						strcat(sOutputLine,".");
 						fUInt8To2CharStr(tDCF77DateTime.iYear,sTemp);
 						strcat(sOutputLine,sTemp);
-						fLCDPutStringCenter(sOutputLine,1);
+						//fLCDPutStringCenter(sOutputLine,1);
+						fGetCenterAndFilledUpString(sOutputLine,sDisplayLine2,sizeof(sDisplayLine2)-1);
 					}
 					else{
 						iDisplayPage++;
 					}
 				}	
 				if(iDisplayPage==7){	
-					lcd_clrscr();
-					fLCDPutStringCenter(sSyncronisationMode,0);
+					//lcd_clrscr();
+					//fLCDPutStringCenter(sSyncronisationMode,0);
+					fGetCenterAndFilledUpString(sSyncronisationMode,sDisplayLine1,sizeof(sDisplayLine1)-1);
 					if(bSyncMode24h){
 						strcpy_P(sOutputLine,prgsSyncMode24h);
-						fLCDPutStringCenter(sOutputLine,1);
+						//fLCDPutStringCenter(sOutputLine,1);
+						fGetCenterAndFilledUpString(sOutputLine,sDisplayLine2,sizeof(sDisplayLine2)-1);
 					}
 					else{
 						strcpy_P(sOutputLine,prgsSyncMode12h);
-						fLCDPutStringCenter(sOutputLine,1);
+						//fLCDPutStringCenter(sOutputLine,1);
+						fGetCenterAndFilledUpString(sOutputLine,sDisplayLine2,sizeof(sDisplayLine2)-1);
 					}
 					
 				}
 				if(iDisplayPage>=8){
 					iDisplayPage=0;
 				}
+			/* EndStrings für die AUsgabe erzeugen */
+			// Strings auf Display ausgeben
+			if(bUpdateDisplay && bLCDDisplayOn){
+				lcd_gotoxy(0,0);
+				lcd_puts(sDisplayLine1);
+				lcd_gotoxy(0,1);
+				lcd_puts(sDisplayLine2);
 				bUpdateDisplay=FALSE;
 			}
 			// Kein LCD Display -> LED Ausgabe
@@ -1517,8 +1552,8 @@ static void fUpdateTimeString(char *psTime,TTime *ptClientTime){
 // Init the io ports
 static void fInitIoports(void){
 	/// Datenrichtung 1= Ausgang, 0=Eingang
-	DDRB |= (1<<OUTPUT_PULSE_EVEN);
-	DDRD |= ((1<<OUTPUT_PULSE_ODD)|(1<<PIN_1HZ_BLINK));
+	// DDRB |= (1<<OUTPUT_PULSE_EVEN);
+	DDRD |= ((1<<OUTPUT_PULSE_ODD)|(1<<OUTPUT_PULSE_EVEN)|(1<<PIN_1HZ_BLINK));
 	// ISR1 und PD4 als Eingang
 	DDRD &= ~((1<<POWER_SUPPLY_ACTIVE_PIN)|(1<<LCD_DISPLAY_ACTIVE_PIN));
 	// Pullups auf PD4 an
@@ -1627,6 +1662,7 @@ static void fExecuteEvery10telSecond(void){
 	}	
 }
 static void fExecuteEverySecond(void){
+	static int iDelayCount=0;
 	// Synctime für die Zeit des syncs weiterzählen
 	if(stNewTimeForClients.bIncTime){
 		if(stNewTimeForClients.iSecond<59){
@@ -1662,7 +1698,14 @@ static void fExecuteEverySecond(void){
 			// Die Synczeitnormal weiterzählen
 			if(iTimeDiff>0){
 				// Zeit aufholen
-				fIncClientTime(&stClientTime,TRUE);
+				// Warten bis SYNC_SECONDS_TO_WAIT_TO_NEXT_MINUTE erreicht
+				if(iDelayCount<=0){
+					fIncClientTime(&stClientTime,TRUE);
+					iDelayCount=SYNC_SECONDS_TO_WAIT_TO_NEXT_MINUTE-1;
+				}
+				else{
+					iDelayCount--;
+				}
 			}
 			else{
 				// Zeit warten
@@ -1678,6 +1721,8 @@ static void fExecuteEverySecond(void){
 		}
 		else{
 			if(stClientTime.bIncTime){
+				// AUf jeden Fall SYNC_SECONDS_TO_WAIT_TO_NEXT_MINUTE warten falls eine sychronisation ansteht nach dem weiterzählen der Uhr
+				iDelayCount=SYNC_SECONDS_TO_WAIT_TO_NEXT_MINUTE;
 				fIncClientTime(&stClientTime,FALSE);
 			}
 		}
@@ -1964,11 +2009,13 @@ SIGNAL(SIG_INTERRUPT0){
 			if(tDCF77DateTime.iIsValidForSeconds>=DCF77_IS_VALID_FOR_SECONDS-3){
 				// Letzter Sync erfolgreich? Dann sync setzen
 				// 1. Sekunde neue Minute && Sync erfolgreich
-				stNewTimeForClients.iHour=tDCF77DateTime.iHour;
-				stNewTimeForClients.iMinute=tDCF77DateTime.iMinute;
-				stNewTimeForClients.iSecond=0;
-				stNewTimeForClients.bReady4Sync=TRUE;
-				stNewTimeForClients.bIncTime=TRUE;
+				if(bDCF77){
+					stNewTimeForClients.iHour=tDCF77DateTime.iHour;
+					stNewTimeForClients.iMinute=tDCF77DateTime.iMinute;
+					stNewTimeForClients.iSecond=0;
+					stNewTimeForClients.bReady4Sync=TRUE;
+					stNewTimeForClients.bIncTime=TRUE;
+				}
 			}
 			iDCF77BitPointer=0;
 			tDCF77DateTime.iDCF77Status=DCF77_SYNCING;
@@ -2114,6 +2161,37 @@ static void fLCDPutStringCenter(char *sOut,uint8_t iLineNumber){
 	if((iXStartPos>=0 && iXStartPos<(LCD_DISP_LENGTH/2)) && (iLineNumber>=0 && iLineNumber<LCD_LINES)){
 		lcd_gotoxy(iXStartPos,iLineNumber);
 		lcd_puts(sOut);
+	}
+}
+static void fGetCenterAndFilledUpString(char *sIn, char *sOut,uint8_t iLength){
+	int8_t iStartPos=0,iLoop;
+	char *pStrpos;
+	iStartPos=(iLength-strlen(sIn))/2;
+	sOut[0]='\0';
+	pStrpos=sOut;
+	// Clear String
+	for(iLoop=0;iLoop<iLength;iLoop++){strcat(sOut,"\x20");}
+	if(iStartPos>=0){
+		pStrpos+=iStartPos;
+		for(iLoop=0;iLoop<strlen(sIn);iLoop++){
+				*pStrpos=sIn[iLoop];
+				pStrpos++;
+		}
+	}
+}
+
+static void fCopyStringCenter(char *sString, char *sOut, uint8_t iMaxStrLength){
+	uint8_t iLength, iXStartPos,iLoop;
+	iLength=strlen(sString);
+	iXStartPos=(iMaxStrLength-iLength)/2;
+	if((iXStartPos>=0 && iXStartPos<(iMaxStrLength/2))){
+		sOut[0]='\0';
+		for(iLoop=0;iLoop<iXStartPos;iLoop++){
+			strcat(sOut," ");
+		}
+		if((iXStartPos+iLength)<LCD_DISP_LENGTH){
+			strcat(sOut,sString);
+		}
 	}
 }
 static uint8_t fSplitCommandFromParameter(char *psInput, char* psCommand, char* psParameter){
