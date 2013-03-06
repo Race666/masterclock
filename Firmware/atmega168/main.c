@@ -20,6 +20,7 @@ V1.05	  06.12.2010 michael@albert-hetzles.de Bug im  Protokoll gd7 behoben
 V1.06b2   25.10.2011 michael@albert-hetzles.de Trotz bDCF77=false wurde syncronisiert		
           20.12.2012 michael@albert-hetzles.de Peridodenzeit der Impulse beim synchronieren änderbar, default 1sec	
 V1.06b4	  24.02.2013 michael@albert-hetzles.de Bug!!! Inkonsitenz Schaltplan und Programm OUTPUT_PULSE_EVEN PB0 -> PD6	   
+V1.07	  06.03.2013 michael@albert-hetzles.de 1.07=1.06b4	
 */
 /* TODO INTERRUPT */
 #include <avr/io.h>
@@ -35,7 +36,7 @@ V1.06b4	  24.02.2013 michael@albert-hetzles.de Bug!!! Inkonsitenz Schaltplan und
 // Language
 #define LANG_DE
 // Version
-char sFirmwareVersion[10]="V1.06b4";
+char sFirmwareVersion[10]="V1.07";
 
 
 // Toogles a LED/Bit at Port and pin
