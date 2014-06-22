@@ -21,6 +21,8 @@ V1.06b2   25.10.2011 michael@albert-hetzles.de Trotz bDCF77=false wurde syncroni
           20.12.2012 michael@albert-hetzles.de Peridodenzeit der Impulse beim synchronieren änderbar, default 1sec	
 V1.06b4	  24.02.2013 michael@albert-hetzles.de Bug!!! Inkonsitenz Schaltplan und Programm OUTPUT_PULSE_EVEN PB0 -> PD6	   
 V1.07	  06.03.2013 michael@albert-hetzles.de 1.07=1.06b4	
+V1.08b1   01.03.2014 michael@albert-hetzles.de Bug in fInitLEDIOPorts Zeile 1573 	PORTD -> PORTC geändert
+V1.08     22.06.2014 michael@albert-hetzles.de V1.08b1 -> V1.08
 */
 /* TODO INTERRUPT */
 #include <avr/io.h>
@@ -36,7 +38,7 @@ V1.07	  06.03.2013 michael@albert-hetzles.de 1.07=1.06b4
 // Language
 #define LANG_DE
 // Version
-char sFirmwareVersion[10]="V1.07";
+char sFirmwareVersion[10]="V1.08";
 
 
 // Toogles a LED/Bit at Port and pin
@@ -1567,7 +1569,7 @@ static void fInitIoports(void){
 	EIMSK |= (1<<INT1);
 }
 static void fInitLEDIOPorts(void){
-	PORTD &= ~((1<<PIN_LED_DCF77_CURRENT_STATUS)|(1<<PIN_LED_DCF77_RETURN_STATE_OK)|(1<<PIN_LED_DCF77_RETURN_STATE_ERROR)|(1<<PIN_LED_DCF77_HEALTH_STATE)|(1<<PIN_CLOCK_IS_SYNCING));
+	PORTC &= ~((1<<PIN_LED_DCF77_CURRENT_STATUS)|(1<<PIN_LED_DCF77_RETURN_STATE_OK)|(1<<PIN_LED_DCF77_RETURN_STATE_ERROR)|(1<<PIN_LED_DCF77_HEALTH_STATE)|(1<<PIN_CLOCK_IS_SYNCING));
 	DDRC |= ((1<<PIN_LED_DCF77_CURRENT_STATUS)|(1<<PIN_LED_DCF77_RETURN_STATE_OK)|(1<<PIN_LED_DCF77_RETURN_STATE_ERROR)|(1<<PIN_LED_DCF77_HEALTH_STATE)|(1<<PIN_CLOCK_IS_SYNCING));
 }
 // init counter
