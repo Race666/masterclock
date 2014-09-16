@@ -41,8 +41,8 @@ V1.09     17.09.2014 michael@albert-hetzles.de V1.09b3 -> V1.09WW
 #include "terminal.h"
 
 // Language
-// #define LANG_EN
-#define LANG_DE
+#define LANG_EN
+// #define LANG_DE
 // Version
 char sFirmwareVersion[17]="V1.09WW";
 

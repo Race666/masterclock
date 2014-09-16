@@ -1,0 +1,4 @@
+:: Read fuses
+avrdude -c usbtiny -p m328p -v
+:: Flash Flash
+avrdude -c usbtiny -p m328p -U flash:w:main.hex -U lfuse:w:0xdf:m -U hfuse:w:0xd9:m -U efuse:w:0xfb:m -U eeprom:w:main.eep
