@@ -1,0 +1,56 @@
+Partlist
+
+Exported from mutteruhr-Haus.sch at 11.01.2016 14:27:36
+
+EAGLE Version 6.4.0 Copyright (c) 1988-2013 CadSoft
+
+Assembly variant: 
+
+Part     Value                     Device          Package         Library              Sheet
+
+C1       18pf                      C-EU050-024X044 C050-024X044    rcl                  1
+C2       3-60pf                    C-TRIMM3050.505 CTRIM3050.505   rcl                  1
+C3       27pf                      C-EU050-024X044 C050-024X044    rcl                  1
+C4       27pf                      C-EU050-024X044 C050-024X044    rcl                  1
+C5       1uf                       C5/5.5          C5B5.5          capacitor-wima       1
+C7       1uf                       C5/5.5          C5B5.5          capacitor-wima       1
+C8       1000uF/10V                CPOL-EUE5-8.5   E5-8,5          rcl                  1
+C9       1000uF/35V                CPOL-EUE5-8.5   E5-8,5          rcl                  1
+C10      3300uF/10V                CPOL-EUE7.5-16  E7,5-16         rcl                  1
+C11      470pf                     C5/5.5          C5B5.5          capacitor-wima       1
+C12      10uF/10V                  CPOL-EUE5-5     E5-5            rcl-2                1
+D1       1N4001                    1N4001          DO41-10         tango                1
+D2       1N5819-B                  1N5819-B        DO41-7.6        diode                1
+D3       1N4004                    1N4004          DO41-10         diode                1
+D4       1N4004                    1N4004          DO41-10         diode                1
+D5       1N4004                    1N4004          DO41-10         diode                1
+D6       1N4004                    1N4004          DO41-10         diode                1
+D7       SUPPRESSOR 33V            P4KEXX          DO41-10         diode                1
+D8       1N4148DO35-7              1N4148DO35-7    DO35-7          diode                1
+D9       1N4148DO35-7              1N4148DO35-7    DO35-7          diode                1
+F1       200mA                     GSH15           GSH15           fuse                 1
+IC1      atmega168                 MEGA8-P         DIL28-3         atmel                1
+IC3      MC34063AP                 MC34063AP       DIL-08          v-reg-3              1
+IC4      L298                      L298            MULTIWATT-15    st-microelectronics  1
+IC5      MCP2200SOIC20             MCP2200SOIC20   SOIC20          microchip-update-2   1
+JP1      HD44780 Display connector PINHD-1X16_2.54 1X16            pinhead-2            1
+L2       150mH                     82114R          82114R          inductors            1
+OK1      6N138                     6N138           DIL08           optocoupler          1
+PAD1     LED TX                    2,54/0,8        2,54/0,8        wirepad              1
+PAD2     LED RX                    2,54/0,8        2,54/0,8        wirepad              1
+PAD3     1 HZ Takt                 2,54/0,8        2,54/0,8        wirepad              1
+Q1       8MHz                      CRYSTALHC18U-V  HC18U-V         crystal              1
+Q2       12MHz                     CRYSTALHC18U-V  HC18U-V         crystal              1
+R1       2k                        TRIM_EU-RS3     RS3             pot                  1
+R2       1,5k                      R-EU_0207/10    0207/10         resistor             1
+R3       1,0k                      R-EU_0207/10    0207/10         resistor             1
+R4       3,6k                      R-EU_0207/12    0207/12         resistor             1
+R5       1,2k                      R-EU_0207/12    0207/12         resistor             1
+R6       50k                       R-EU_0207/10    0207/10         resistor             1
+R7       8,2k                      R-EU_0207/10    0207/10         resistor             1
+R8       4,7k                      R-EU_0207/10    0207/10         resistor             1
+R9       1,5 0,5W                  R-EU_0411/3V    0411V           resistor             1
+X1                                 MKDSN1,5/2-5,08 MKDSN1,5/2-5,08 con-phoenix-508      1
+X2       ASSMANN  Reichelt USB AW  USB_AW_REICHELT USB_AW_REICHELT con-assmann-reichelt 1
+X3                                 MKDSN1,5/2-5,08 MKDSN1,5/2-5,08 con-phoenix-508      1
+X4                                 MKDSN1,5/4-5,08 MKDSN1,5/4-5,08 con-phoenix-508      1
