@@ -28,6 +28,7 @@ V1.09b2   05.09.2014 michael@albert-hetzles.de Max. Pulsedauer auf 8000ms erhöht
 V1.09b3   05.09.2014 michael@albert-hetzles.de Pulse Delay wird dynamisch anhand der Pulseweite ermittelt DelayInSec=(PulseweiteIn100MS+1)/10+1, Bug interval wurde immer noch auf SYNC_SECONDS_TO_WAIT_TO_NEXT_MINUTE
                                                Interval wird beim setzen des spw kommandos mitausgeben
 V1.09     17.09.2014 michael@albert-hetzles.de V1.09b3 -> V1.09WW											   
+V2.00b1   22.10.2018 michael@albert-hetzles.de Umstellung WinAVR -> Linux avr-gcc. Anpassung an avr-gcc 4.9.2 (Debian 9 stretch). Benötigte pakete apt-get install gcc-avr avr-libc
 */
 /* TODO INTERRUPT */
 #include <avr/io.h>
@@ -44,7 +45,7 @@ V1.09     17.09.2014 michael@albert-hetzles.de V1.09b3 -> V1.09WW
 // #define LANG_EN
 #define LANG_DE
 // Version
-char sFirmwareVersion[17]="V1.09WW";
+char sFirmwareVersion[17]="V2.00b1";
 
 
 // Toogles a LED/Bit at Port and pin
@@ -218,8 +219,8 @@ uint8_t ee_iPulsWidthIn100ms EEMEM = 4;
 // Version
 char sClockName[17] = "RA Mutteruhr";
 char sPrompt[6]="mu:> ";
-char prgsInitHelp[] PROGMEM ="\r\nHilfe mit \x1b[37;1m?\x1b[0;37m oder \x1b[37;1mhelp\x1b[0;37m und mit return anschliessen.\r\n";
-char prgsHelp[] PROGMEM ="\
+const char prgsInitHelp[] PROGMEM ="\r\nHilfe mit \x1b[37;1m?\x1b[0;37m oder \x1b[37;1mhelp\x1b[0;37m und mit return anschliessen.\r\n";
+const char prgsHelp[] PROGMEM ="\
  \x1b[37;1mVerfuegbare Kommandos:\r\n\
  \x1b[37;1mdcf \x1b[0;37m-> Synchronisation mit DCF77 ja|nein.\r\n\
  \x1b[37;1msmt \x1b[0;37m-> Mutteruhr auf Zeit von Nebenuhren stellen.\r\n\
@@ -229,102 +230,102 @@ char prgsHelp[] PROGMEM ="\
  \x1b[37;1mssm \x1b[0;37m-> Syncmodus 12h/24h setzen.\r\n\
  \x1b[37;1mspw \x1b[0;37m-> Ausgangsimpulsweite aendern(200-8000ms).\r\n\
  \x1b[37;1mstat \x1b[0;37m-> Gesamtstatus anzeigen.\r\n";
-char prgsFirm[] PROGMEM = "\x1b[37;1mFirmware\x1b[21C: \x1b[0;37m";
-char prgsTimeOnClients[] PROGMEM = "\x1b[37;1mZeit auf Nebenuhren\x1b[10C: \x1b[0;37m";
-char prgsMode[] PROGMEM = "\r\n\x1b[37;1mStatus\x1b[23C: \x1b[0;37m";
-char prgsLastPowerF[] PROGMEM = "\x1b[37;1mLetzter Spannungsausfall\x1b[5C: \x1b[0;37m";
-char prgsLastPowerFClientTime[] PROGMEM = "\x1b[37;1mZeit auf Nebenuhren bei\r\nletztem Spannungsausfall\x1b[5C: \x1b[0;37m";
-char prgsDCF77[] PROGMEM = "\r\n\x1b[37;1mDCF77\x1b[24C: \x1b[0;37m";
-char prgsDCF77LastRec[] PROGMEM = "aktiviert\r\n\x1b[37;1mLetztes DCF77 Empfangsdatum\x1b[2C: \x1b[0;37m";
-char prgsDCF77LastRes[] PROGMEM = "\r\n\x1b[37;1mDCF77 Letztes Ergebnis\x1b[7C: \x1b[0;37m";
-char prgsDCF77LastStat[] PROGMEM = "\r\n\x1b[37;1mDCF77 Status\x1b[17C: \x1b[0;37m";
-char prgsDCF77LastData[] PROGMEM = "\r\n\x1b[37;1mDCF77 letzter Komplettempfang: \x1b[0;37m";
-char prgsSyncMode[] PROGMEM = "\r\n\x1b[37;1mSynchronisationsmodus\x1b[8C: \x1b[0;37m";
-char prgsLCDDisplayIs[] PROGMEM = "\x1b[37;1mLCD Display ist\x1b[14C: \x1b[0;37m";
-char prgsOutputPulseWidth[] PROGMEM = "\x1b[37;1mAusgangsimpulsweite\x1b[10C: \x1b[0;37m";
-char prgsOutputPulseInterval[] PROGMEM = "\x1b[37;1mAusgangsimpulsinterval\x1b[7C: \x1b[0;37m";
-char prgsSCTQuest[] PROGMEM = "Zeit auf den Nebenuhren (xx:xx): ";
-char prgsNCTQuest[] PROGMEM = "Stelle Nebenuhren exakt auf (xx:xx): ";
-char prgsACTQuest[] PROGMEM = "Stelle Nebenuhren auf (xx:xx): ";
-char prgsACTNCTErrorMsg[] PROGMEM = "Bitte DCF77 zuerst deaktivieren!\r\n";
-char prgsPCTStat[] PROGMEM = "Nebenuhr(en) ";
-char prgsPCTQuestPaused[] PROGMEM =  "laufen. Anhalten ? (j|n): ";
-char prgsPCTQuestContinue[] PROGMEM = "sind angehalten. Starten ? (j|n): ";
-char prgsDCF77NoRec[] PROGMEM = "Noch keine DCF77 Daten empfangen.";
-char prgsDCF77Head[] PROGMEM = "DCF Sychnronistaion ist ";
-char prgsDCF77QuestOn[] PROGMEM = "an. Ausschalten? (j|n): ";
-char prgsDCF77QuestOff[] PROGMEM = "aus. Einschalten? (j|n): ";
-char prgsSetDCF77On[] PROGMEM = "DCF77 Synchronisation ein.\r\n";
-char prgsSetDCF77Off[] PROGMEM = "DCF77 Synchronisation aus.\r\n";
-char prgsSyncMode24hHead[] PROGMEM = "Syncmodus ist ";
-char prgsSyncMode24hQuest12[] PROGMEM = "24 Stunden. Auf 12 Stunden setzen? (j|n): ";
-char prgsSyncMode24hQuest24[] PROGMEM = "12 Stunden. Auf 24 Stunden setzen? (j|n): ";
-char prgsSyncMode24h[] PROGMEM = "24 Stunden";
-char prgsSyncMode12h[] PROGMEM = "12 Stunden";
-char prgsSetSyncMode24hOn[] PROGMEM = "24h Stunden Modus aktiviert.\r\n";
-char prgsSetSyncMode24hOff[] PROGMEM = "12h Stunden Modus aktiviert.\r\n";
-char prgsUnknownCommand[] PROGMEM = "Kommando existiert nicht.\r\n";
-char prgsInvalidTime[] PROGMEM = "Ungueltiges Zeitformat\r\n";
-char prgsSetContinue[] PROGMEM = "Uhr gestartet.\r\n";
-char prgsSetHalted[] PROGMEM = "Uhr angehalten.\r\n";
-char prgsPrintok[] PROGMEM = "ok\r\n";
-char prgsReturnOK[] PROGMEM = "OK\r\n";
-char prgsReturnERROR[] PROGMEM = "ERROR\r\n";
-char prgsCurrentBit[] PROGMEM = ", gerade empfangenes Bit: ";
-char prgsMinutesLeft[] PROGMEM = " Minute(n) zu synchronisieren";
-char prgsSyncingTo[] PROGMEM = "synchronisiere Nebenuhren auf ";
-char prgsWrongInput[] PROGMEM = "Falsche Eingabe.\r\n";
-char prgsHalted[] PROGMEM = "->pause";
-char prgsLCDOn[] PROGMEM = "Aktiv";
-char prgsLCDOff[] PROGMEM = "Aus";
-char prgsPulsWidthQuest[] PROGMEM = "Ausgangsimpulsweite aendern (in 100ms, moegliche Werte: 2|3|4|....|80): ";
-char prgsPulsWidthSetOutPre[] PROGMEM = "Ausgangsimpulsweite wurde auf     :";
-char prgsPulsWidthSetOutPost[] PROGMEM = "00ms gesetzt.\r\n";
-char prgsPulsIntervalSetOutPre[] PROGMEM = "Ausgangsimpulseinterval wurde auf: ";
-char prgsPulsIntervalSetOutPost[] PROGMEM = "s gesetzt.\r\n";
-char prgsSeconds[] PROGMEM = " Sekunden";
+const char prgsFirm[] PROGMEM = "\x1b[37;1mFirmware\x1b[21C: \x1b[0;37m";
+const char prgsTimeOnClients[] PROGMEM = "\x1b[37;1mZeit auf Nebenuhren\x1b[10C: \x1b[0;37m";
+const char prgsMode[] PROGMEM = "\r\n\x1b[37;1mStatus\x1b[23C: \x1b[0;37m";
+const char prgsLastPowerF[] PROGMEM = "\x1b[37;1mLetzter Spannungsausfall\x1b[5C: \x1b[0;37m";
+const char prgsLastPowerFClientTime[] PROGMEM = "\x1b[37;1mZeit auf Nebenuhren bei\r\nletztem Spannungsausfall\x1b[5C: \x1b[0;37m";
+const char prgsDCF77[] PROGMEM = "\r\n\x1b[37;1mDCF77\x1b[24C: \x1b[0;37m";
+const char prgsDCF77LastRec[] PROGMEM = "aktiviert\r\n\x1b[37;1mLetztes DCF77 Empfangsdatum\x1b[2C: \x1b[0;37m";
+const char prgsDCF77LastRes[] PROGMEM = "\r\n\x1b[37;1mDCF77 Letztes Ergebnis\x1b[7C: \x1b[0;37m";
+const char prgsDCF77LastStat[] PROGMEM = "\r\n\x1b[37;1mDCF77 Status\x1b[17C: \x1b[0;37m";
+const char prgsDCF77LastData[] PROGMEM = "\r\n\x1b[37;1mDCF77 letzter Komplettempfang: \x1b[0;37m";
+const char prgsSyncMode[] PROGMEM = "\r\n\x1b[37;1mSynchronisationsmodus\x1b[8C: \x1b[0;37m";
+const char prgsLCDDisplayIs[] PROGMEM = "\x1b[37;1mLCD Display ist\x1b[14C: \x1b[0;37m";
+const char prgsOutputPulseWidth[] PROGMEM = "\x1b[37;1mAusgangsimpulsweite\x1b[10C: \x1b[0;37m";
+const char prgsOutputPulseInterval[] PROGMEM = "\x1b[37;1mAusgangsimpulsinterval\x1b[7C: \x1b[0;37m";
+const char prgsSCTQuest[] PROGMEM = "Zeit auf den Nebenuhren (xx:xx): ";
+const char prgsNCTQuest[] PROGMEM = "Stelle Nebenuhren exakt auf (xx:xx): ";
+const char prgsACTQuest[] PROGMEM = "Stelle Nebenuhren auf (xx:xx): ";
+const char prgsACTNCTErrorMsg[] PROGMEM = "Bitte DCF77 zuerst deaktivieren!\r\n";
+const char prgsPCTStat[] PROGMEM = "Nebenuhr(en) ";
+const char prgsPCTQuestPaused[] PROGMEM =  "laufen. Anhalten ? (j|n): ";
+const char prgsPCTQuestContinue[] PROGMEM = "sind angehalten. Starten ? (j|n): ";
+const char prgsDCF77NoRec[] PROGMEM = "Noch keine DCF77 Daten empfangen.";
+const char prgsDCF77Head[] PROGMEM = "DCF Sychnronistaion ist ";
+const char prgsDCF77QuestOn[] PROGMEM = "an. Ausschalten? (j|n): ";
+const char prgsDCF77QuestOff[] PROGMEM = "aus. Einschalten? (j|n): ";
+const char prgsSetDCF77On[] PROGMEM = "DCF77 Synchronisation ein.\r\n";
+const char prgsSetDCF77Off[] PROGMEM = "DCF77 Synchronisation aus.\r\n";
+const char prgsSyncMode24hHead[] PROGMEM = "Syncmodus ist ";
+const char prgsSyncMode24hQuest12[] PROGMEM = "24 Stunden. Auf 12 Stunden setzen? (j|n): ";
+const char prgsSyncMode24hQuest24[] PROGMEM = "12 Stunden. Auf 24 Stunden setzen? (j|n): ";
+const char prgsSyncMode24h[] PROGMEM = "24 Stunden";
+const char prgsSyncMode12h[] PROGMEM = "12 Stunden";
+const char prgsSetSyncMode24hOn[] PROGMEM = "24h Stunden Modus aktiviert.\r\n";
+const char prgsSetSyncMode24hOff[] PROGMEM = "12h Stunden Modus aktiviert.\r\n";
+const char prgsUnknownCommand[] PROGMEM = "Kommando existiert nicht.\r\n";
+const char prgsInvalidTime[] PROGMEM = "Ungueltiges Zeitformat\r\n";
+const char prgsSetContinue[] PROGMEM = "Uhr gestartet.\r\n";
+const char prgsSetHalted[] PROGMEM = "Uhr angehalten.\r\n";
+const char prgsPrintok[] PROGMEM = "ok\r\n";
+const char prgsReturnOK[] PROGMEM = "OK\r\n";
+const char prgsReturnERROR[] PROGMEM = "ERROR\r\n";
+const char prgsCurrentBit[] PROGMEM = ", gerade empfangenes Bit: ";
+const char prgsMinutesLeft[] PROGMEM = " Minute(n) zu synchronisieren";
+const char prgsSyncingTo[] PROGMEM = "synchronisiere Nebenuhren auf ";
+const char prgsWrongInput[] PROGMEM = "Falsche Eingabe.\r\n";
+const char prgsHalted[] PROGMEM = "->pause";
+const char prgsLCDOn[] PROGMEM = "Aktiv";
+const char prgsLCDOff[] PROGMEM = "Aus";
+const char prgsPulsWidthQuest[] PROGMEM = "Ausgangsimpulsweite aendern (in 100ms, moegliche Werte: 2|3|4|....|80): ";
+const char prgsPulsWidthSetOutPre[] PROGMEM = "Ausgangsimpulsweite wurde auf     :";
+const char prgsPulsWidthSetOutPost[] PROGMEM = "00ms gesetzt.\r\n";
+const char prgsPulsIntervalSetOutPre[] PROGMEM = "Ausgangsimpulseinterval wurde auf: ";
+const char prgsPulsIntervalSetOutPost[] PROGMEM = "s gesetzt.\r\n";
+const char prgsSeconds[] PROGMEM = " Sekunden";
 // LCD Display Ausgaben:
-char sTimeOnSlaves[14] = "Nebenuhrzeit:";
-char sSyncingClocks[17] = "Synchronisiere..";
-char sDCF77mode[17]="DCF77 Syncmodus:";
-char sDCF77State[15]="DCF77 Status: ";
-char sDCF77StateON[6] = "Aktiv";
-char sMinutesLeft[10] =" Minuten.";
-char sDCF77StateOff[12]="deaktiviert";
-char sDCF77LastResult[16] = "DCF Auswertung:";
-char sDCF77SyncStatus[16] = "DCF77 Empfange:";
-char sSyncronisationMode[12] ="Sync Modus:";
-char sPowerSupplyDownLine1[16]="Stromversorgung";
-char sPowerSupplyDownLine2[13]="ausgefallen!";
+const char sTimeOnSlaves[14] = "Nebenuhrzeit:";
+const char sSyncingClocks[17] = "Synchronisiere..";
+const char sDCF77mode[17]="DCF77 Syncmodus:";
+const char sDCF77State[15]="DCF77 Status: ";
+const char sDCF77StateON[6] = "Aktiv";
+const char sMinutesLeft[10] =" Minuten.";
+const char sDCF77StateOff[12]="deaktiviert";
+const char sDCF77LastResult[16] = "DCF Auswertung:";
+const char sDCF77SyncStatus[16] = "DCF77 Empfange:";
+const char sSyncronisationMode[12] ="Sync Modus:";
+const char sPowerSupplyDownLine1[16]="Stromversorgung";
+const char sPowerSupplyDownLine2[13]="ausgefallen!";
 // Weekdays long
-char prgsSundayLong[] PROGMEM = "Sonntag";
-char prgsMondayLong[] PROGMEM = "Montag";
-char prgsTuesdayLong[] PROGMEM = "Dienstag";
-char prgsWednesdayLong[] PROGMEM = "Mittwoch";
-char prgsThursdayLong[] PROGMEM = "Donnerstag";
-char prgsFridayLong[] PROGMEM = "Freitag";
-char prgsSaturdayLong[] PROGMEM = "Samstag";
+const char prgsSundayLong[] PROGMEM = "Sonntag";
+const char prgsMondayLong[] PROGMEM = "Montag";
+const char prgsTuesdayLong[] PROGMEM = "Dienstag";
+const char prgsWednesdayLong[] PROGMEM = "Mittwoch";
+const char prgsThursdayLong[] PROGMEM = "Donnerstag";
+const char prgsFridayLong[] PROGMEM = "Freitag";
+const char prgsSaturdayLong[] PROGMEM = "Samstag";
 // Weekdays short
-char prgsSundayShort[] PROGMEM = "So";
-char prgsMondayShort[] PROGMEM = "Mo";
-char prgsTuesdayShort[] PROGMEM = "Di";
-char prgsWednesdayShort[] PROGMEM = "Mi";
-char prgsThursdayShort[] PROGMEM = "Do";
-char prgsFridayShort[] PROGMEM = "Fr";
-char prgsSaturdayShort[] PROGMEM = "Sa";
+const char prgsSundayShort[] PROGMEM = "So";
+const char prgsMondayShort[] PROGMEM = "Mo";
+const char prgsTuesdayShort[] PROGMEM = "Di";
+const char prgsWednesdayShort[] PROGMEM = "Mi";
+const char prgsThursdayShort[] PROGMEM = "Do";
+const char prgsFridayShort[] PROGMEM = "Fr";
+const char prgsSaturdayShort[] PROGMEM = "Sa";
 // DCF77 Errormessages
-char prgsDCF77ErrMsgOK[] PROGMEM ="ok";
-char prgsDCF77ErrMsgParityHour[] PROGMEM ="ERR-Par. Stunde";
-char prgsDCF77ErrMsgParityMinute[] PROGMEM ="ERR-Par. Minute";
-char prgsDCF77ErrMsgParityDate[] PROGMEM ="ERR-Par. Datum";
-char prgsDCF77ErrMsgCycleTime[] PROGMEM ="ERR-DauerPeriode";
-char prgsDCF77ErrMsgPulse[] PROGMEM ="ERR-Pulsdauer";
-char prgsDCF77ErrMsgNoState[] PROGMEM ="Kein Status";
+const char prgsDCF77ErrMsgOK[] PROGMEM ="ok";
+const char prgsDCF77ErrMsgParityHour[] PROGMEM ="ERR-Par. Stunde";
+const char prgsDCF77ErrMsgParityMinute[] PROGMEM ="ERR-Par. Minute";
+const char prgsDCF77ErrMsgParityDate[] PROGMEM ="ERR-Par. Datum";
+const char prgsDCF77ErrMsgCycleTime[] PROGMEM ="ERR-DauerPeriode";
+const char prgsDCF77ErrMsgPulse[] PROGMEM ="ERR-Pulsdauer";
+const char prgsDCF77ErrMsgNoState[] PROGMEM ="Kein Status";
 // DCF77 StatusStrings
-char prgsDCF77StateInit[] PROGMEM = "Initialsiere";
-char prgsDCF77StateSyncing[] PROGMEM = "Empfange Daten";
-char prgsDCF77StateWait4Sync[] PROGMEM = "Warte auf Daten";
-char prgsDCF77StateUnknown[] PROGMEM = "Unbekannt";
+const char prgsDCF77StateInit[] PROGMEM = "Initialsiere";
+const char prgsDCF77StateSyncing[] PROGMEM = "Empfange Daten";
+const char prgsDCF77StateWait4Sync[] PROGMEM = "Warte auf Daten";
+const char prgsDCF77StateUnknown[] PROGMEM = "Unbekannt";
 // Input keys
 char sKeyYes[2]="j";
 char sKeyNo[2]="n";
@@ -343,102 +344,102 @@ char prgsHelp[] PROGMEM ="\
  \x1b[37;1mssm \x1b[0;37m-> Set 12h/24h Syncmode.\r\n\
  \x1b[37;1mspw \x1b[0;37m-> Change output pulsewidth(200-8000ms).\r\n\
  \x1b[37;1mstat \x1b[0;37m-> Show the current state of the clock.\r\n";
-char prgsFirm[] PROGMEM = "\x1b[37;1mFirmware\x1b[21C: \x1b[0;37m";
-char prgsTimeOnClients[] PROGMEM = "\x1b[37;1mTime on slaves\x1b[15C: \x1b[0;37m";
-char prgsMode[] PROGMEM = "\r\n\x1b[37;1mMode\x1b[25C: \x1b[0;37m";
-char prgsDCF77LastRec[] PROGMEM = "on\r\n\x1b[37;1mDCF77 Last received date\x1b[5C: \x1b[0;37m";
-char prgsDCF77LastRes[] PROGMEM = "\r\n\x1b[37;1mDCF77 Last result\x1b[12C: \x1b[0;37m";
-char prgsDCF77LastStat[] PROGMEM = "\r\n\x1b[37;1mDCF77 State\x1b[18C: \x1b[0;37m";
-char prgsDCF77LastData[] PROGMEM = "\r\n\x1b[37;1mDCF77 last complete receive\x1b[2C: \x1b[0;37m";
-char prgsDCF77[] PROGMEM = "\r\n\x1b[37;1mDCF77\x1b[24C: \x1b[0;37m";
-char prgsLastPowerF[] PROGMEM = "\x1b[37;1mLast Powerfault\x1b[14C: \x1b[0;37m";
-char prgsLastPowerFClientTime[] PROGMEM = "\x1b[37;1mSlavetime at last powerfault : \x1b[0;37m";
-char prgsSyncMode[] PROGMEM = "\r\n\x1b[37;1mSyncmode\x1b[21C: \x1b[0;37m";
-char prgsLCDDisplayIs[] PROGMEM = "\x1b[37;1mLCD Display is\x1b[15C: \x1b[0;37m";
-char prgsOutputPulseWidth[] PROGMEM = "\x1b[37;1mOutput pulse width\x1b[11C: \x1b[0;37m";
-char prgsOutputPulseInterval[] PROGMEM = "\x1b[37;1mOutput pulse interval\x1b[8C: \x1b[0;37m";
-char prgsSCTQuest[] PROGMEM = "Enter current time on slaves (xx:xx): ";
-char prgsNCTQuest[] PROGMEM = "Set slaves exact to (xx:xx): ";
-char prgsACTQuest[] PROGMEM = "Adjust slaves to (xx:xx): ";
-char prgsACTNCTErrorMsg[] PROGMEM = "Disable DCF77 first!\r\n";
-char prgsPCTStat[] PROGMEM = "Slave clocks is currently ";
-char prgsPCTQuestPaused[] PROGMEM =  "running. Set halt? (y|n): ";
-char prgsPCTQuestContinue[] PROGMEM = "halted. Continue? (y|n): ";
-char prgsDCF77NoRec[] PROGMEM = "No DCF77 data received yet.";
-char prgsDCF77Head[] PROGMEM = "DCF is ";
-char prgsDCF77QuestOn[] PROGMEM = "on. Switch off? (y|n): ";
-char prgsDCF77QuestOff[] PROGMEM = "off. Switch on? (y|n): ";
-char prgsSetDCF77On[] PROGMEM = "Set dcf77 on.\r\n";
-char prgsSetDCF77Off[] PROGMEM = "Set dcf77 off.\r\n";
-char prgsSyncMode24hHead[] PROGMEM = "Syncmode is ";
-char prgsSyncMode24hQuest12[] PROGMEM = "24h. Set to 12h? (y|n): ";
-char prgsSyncMode24hQuest24[] PROGMEM = "12h. Set to 24h? (y|n): ";
-char prgsSyncMode24h[] PROGMEM = "24 Hours";
-char prgsSyncMode12h[] PROGMEM = "12 Hours";
-char prgsSetSyncMode24hOn[] PROGMEM = "24h syncmode enabled.\r\n";
-char prgsSetSyncMode24hOff[] PROGMEM = "12h syncmode enabled.\r\n";
-char prgsUnknownCommand[] PROGMEM = "unknown command\r\n";
-char prgsInvalidTime[] PROGMEM = "Invalid time\r\n";
-char prgsSetContinue[] PROGMEM = "Set continue.\r\n";
-char prgsSetHalted[] PROGMEM = "Set halted.\r\n";
-char prgsPrintok[] PROGMEM = "ok\r\n";
-char prgsReturnOK[] PROGMEM = "OK\r\n";
-char prgsReturnERROR[] PROGMEM = "ERROR\r\n";
-char prgsCurrentBit[] PROGMEM = ", current bit: ";
-char prgsMinutesLeft[] PROGMEM = " minutes left";
-char prgsSyncingTo[] PROGMEM = "syncing clients to ";
-char prgsWrongInput[] PROGMEM = "Wrong imput.\r\n";
-char prgsHalted[] PROGMEM = "->halted";
-char prgsLCDOn[] PROGMEM = "On";
-char prgsLCDOff[] PROGMEM = "Off";
-char prgsPulsWidthQuest[] PROGMEM = "Change outputpulsewidth(in 100ms, possible values: 2|3|4|....|80) to: ";
-char prgsPulsWidthSetOutPre[] PROGMEM = "Output pulse width is set to   : ";
-char prgsPulsWidthSetOutPost[] PROGMEM = "00ms\r\n";
-char prgsPulsIntervalSetOutPre[] PROGMEM = "Output pulse interval is set to: ";
-char prgsPulsIntervalSetOutPost[] PROGMEM = "s\r\n";
-char prgsSeconds[] PROGMEM = " seconds";
+const char prgsFirm[] PROGMEM = "\x1b[37;1mFirmware\x1b[21C: \x1b[0;37m";
+const char prgsTimeOnClients[] PROGMEM = "\x1b[37;1mTime on slaves\x1b[15C: \x1b[0;37m";
+const char prgsMode[] PROGMEM = "\r\n\x1b[37;1mMode\x1b[25C: \x1b[0;37m";
+const char prgsDCF77LastRec[] PROGMEM = "on\r\n\x1b[37;1mDCF77 Last received date\x1b[5C: \x1b[0;37m";
+const char prgsDCF77LastRes[] PROGMEM = "\r\n\x1b[37;1mDCF77 Last result\x1b[12C: \x1b[0;37m";
+const char prgsDCF77LastStat[] PROGMEM = "\r\n\x1b[37;1mDCF77 State\x1b[18C: \x1b[0;37m";
+const char prgsDCF77LastData[] PROGMEM = "\r\n\x1b[37;1mDCF77 last complete receive\x1b[2C: \x1b[0;37m";
+const char prgsDCF77[] PROGMEM = "\r\n\x1b[37;1mDCF77\x1b[24C: \x1b[0;37m";
+const char prgsLastPowerF[] PROGMEM = "\x1b[37;1mLast Powerfault\x1b[14C: \x1b[0;37m";
+const char prgsLastPowerFClientTime[] PROGMEM = "\x1b[37;1mSlavetime at last powerfault : \x1b[0;37m";
+const char prgsSyncMode[] PROGMEM = "\r\n\x1b[37;1mSyncmode\x1b[21C: \x1b[0;37m";
+const char prgsLCDDisplayIs[] PROGMEM = "\x1b[37;1mLCD Display is\x1b[15C: \x1b[0;37m";
+const char prgsOutputPulseWidth[] PROGMEM = "\x1b[37;1mOutput pulse width\x1b[11C: \x1b[0;37m";
+const char prgsOutputPulseInterval[] PROGMEM = "\x1b[37;1mOutput pulse interval\x1b[8C: \x1b[0;37m";
+const char prgsSCTQuest[] PROGMEM = "Enter current time on slaves (xx:xx): ";
+const char prgsNCTQuest[] PROGMEM = "Set slaves exact to (xx:xx): ";
+const char prgsACTQuest[] PROGMEM = "Adjust slaves to (xx:xx): ";
+const char prgsACTNCTErrorMsg[] PROGMEM = "Disable DCF77 first!\r\n";
+const char prgsPCTStat[] PROGMEM = "Slave clocks is currently ";
+const char prgsPCTQuestPaused[] PROGMEM =  "running. Set halt? (y|n): ";
+const char prgsPCTQuestContinue[] PROGMEM = "halted. Continue? (y|n): ";
+const char prgsDCF77NoRec[] PROGMEM = "No DCF77 data received yet.";
+const char prgsDCF77Head[] PROGMEM = "DCF is ";
+const char prgsDCF77QuestOn[] PROGMEM = "on. Switch off? (y|n): ";
+const char prgsDCF77QuestOff[] PROGMEM = "off. Switch on? (y|n): ";
+const char prgsSetDCF77On[] PROGMEM = "Set dcf77 on.\r\n";
+const char prgsSetDCF77Off[] PROGMEM = "Set dcf77 off.\r\n";
+const char prgsSyncMode24hHead[] PROGMEM = "Syncmode is ";
+const char prgsSyncMode24hQuest12[] PROGMEM = "24h. Set to 12h? (y|n): ";
+const char prgsSyncMode24hQuest24[] PROGMEM = "12h. Set to 24h? (y|n): ";
+const char prgsSyncMode24h[] PROGMEM = "24 Hours";
+const char prgsSyncMode12h[] PROGMEM = "12 Hours";
+const char prgsSetSyncMode24hOn[] PROGMEM = "24h syncmode enabled.\r\n";
+const char prgsSetSyncMode24hOff[] PROGMEM = "12h syncmode enabled.\r\n";
+const char prgsUnknownCommand[] PROGMEM = "unknown command\r\n";
+const char prgsInvalidTime[] PROGMEM = "Invalid time\r\n";
+const char prgsSetContinue[] PROGMEM = "Set continue.\r\n";
+const char prgsSetHalted[] PROGMEM = "Set halted.\r\n";
+const char prgsPrintok[] PROGMEM = "ok\r\n";
+const char prgsReturnOK[] PROGMEM = "OK\r\n";
+const char prgsReturnERROR[] PROGMEM = "ERROR\r\n";
+const char prgsCurrentBit[] PROGMEM = ", current bit: ";
+const char prgsMinutesLeft[] PROGMEM = " minutes left";
+const char prgsSyncingTo[] PROGMEM = "syncing clients to ";
+const char prgsWrongInput[] PROGMEM = "Wrong imput.\r\n";
+const char prgsHalted[] PROGMEM = "->halted";
+const char prgsLCDOn[] PROGMEM = "On";
+const char prgsLCDOff[] PROGMEM = "Off";
+const char prgsPulsWidthQuest[] PROGMEM = "Change outputpulsewidth(in 100ms, possible values: 2|3|4|....|80) to: ";
+const char prgsPulsWidthSetOutPre[] PROGMEM = "Output pulse width is set to   : ";
+const char prgsPulsWidthSetOutPost[] PROGMEM = "00ms\r\n";
+const char prgsPulsIntervalSetOutPre[] PROGMEM = "Output pulse interval is set to: ";
+const char prgsPulsIntervalSetOutPost[] PROGMEM = "s\r\n";
+const char prgsSeconds[] PROGMEM = " seconds";
 // LCD Display Ausgaben:
-char sTimeOnSlaves[16] = "Time on slaves:";
-char sSyncingClocks[17] = "Syncing clock...";
-char sDCF77mode[17]="DCF77 Syncmode: ";
-char sDCF77State[14]="DCF77 State: ";
-char sDCF77StateON[3] = "On";
-char sMinutesLeft[11] =" min left.";
-char sDCF77StateOff[4]="Off";
-char sDCF77LastResult[17] = "DCF last result:";
-char sDCF77SyncStatus[15] = "DCF receiving:";
-char sSyncronisationMode[11] ="Sync mode:";
-char sPowerSupplyDownLine1[13]="POWER SUPPLY";
-char sPowerSupplyDownLine2[5]="DOWN";
+const char sTimeOnSlaves[16] = "Time on slaves:";
+const char sSyncingClocks[17] = "Syncing clock...";
+const char sDCF77mode[17]="DCF77 Syncmode: ";
+const char sDCF77State[14]="DCF77 State: ";
+const char sDCF77StateON[3] = "On";
+const char sMinutesLeft[11] =" min left.";
+const char sDCF77StateOff[4]="Off";
+const char sDCF77LastResult[17] = "DCF last result:";
+const char sDCF77SyncStatus[15] = "DCF receiving:";
+const char sSyncronisationMode[11] ="Sync mode:";
+const char sPowerSupplyDownLine1[13]="POWER SUPPLY";
+const char sPowerSupplyDownLine2[5]="DOWN";
 // Weekdays long
-char prgsSundayLong[] PROGMEM = "Sunday";
-char prgsMondayLong[] PROGMEM = "Monday";
-char prgsTuesdayLong[] PROGMEM = "Thuesday";
-char prgsWednesdayLong[] PROGMEM = "Wednesday";
-char prgsThursdayLong[] PROGMEM = "Thursday";
-char prgsFridayLong[] PROGMEM = "Friday";
-char prgsSaturdayLong[] PROGMEM = "Saturday";
+const char prgsSundayLong[] PROGMEM = "Sunday";
+const char prgsMondayLong[] PROGMEM = "Monday";
+const char prgsTuesdayLong[] PROGMEM = "Thuesday";
+const char prgsWednesdayLong[] PROGMEM = "Wednesday";
+const char prgsThursdayLong[] PROGMEM = "Thursday";
+const char prgsFridayLong[] PROGMEM = "Friday";
+const char prgsSaturdayLong[] PROGMEM = "Saturday";
 // Weekdays short
-char prgsSundayShort[] PROGMEM = "Sun";
-char prgsMondayShort[] PROGMEM = "Mon";
-char prgsTuesdayShort[] PROGMEM = "Tue";
-char prgsWednesdayShort[] PROGMEM = "Wed";
-char prgsThursdayShort[] PROGMEM = "Thu";
-char prgsFridayShort[] PROGMEM = "Fri";
-char prgsSaturdayShort[] PROGMEM = "Sat";
+const char prgsSundayShort[] PROGMEM = "Sun";
+const char prgsMondayShort[] PROGMEM = "Mon";
+const char prgsTuesdayShort[] PROGMEM = "Tue";
+const char prgsWednesdayShort[] PROGMEM = "Wed";
+const char prgsThursdayShort[] PROGMEM = "Thu";
+const char prgsFridayShort[] PROGMEM = "Fri";
+const char prgsSaturdayShort[] PROGMEM = "Sat";
 // DCF77 Errormessages
-char prgsDCF77ErrMsgOK[] PROGMEM ="ok";
-char prgsDCF77ErrMsgParityHour[] PROGMEM ="ERR-Parity hour";
-char prgsDCF77ErrMsgParityMinute[] PROGMEM ="ERR-Parity min";
-char prgsDCF77ErrMsgParityDate[] PROGMEM ="ERR-Parity date";
-char prgsDCF77ErrMsgCycleTime[] PROGMEM ="ERR-Cycletime";
-char prgsDCF77ErrMsgPulse[] PROGMEM ="ERR-Pulsetime";
-char prgsDCF77ErrMsgNoState[] PROGMEM ="No state";
+const char prgsDCF77ErrMsgOK[] PROGMEM ="ok";
+const char prgsDCF77ErrMsgParityHour[] PROGMEM ="ERR-Parity hour";
+const char prgsDCF77ErrMsgParityMinute[] PROGMEM ="ERR-Parity min";
+const char prgsDCF77ErrMsgParityDate[] PROGMEM ="ERR-Parity date";
+const char prgsDCF77ErrMsgCycleTime[] PROGMEM ="ERR-Cycletime";
+const char prgsDCF77ErrMsgPulse[] PROGMEM ="ERR-Pulsetime";
+const char prgsDCF77ErrMsgNoState[] PROGMEM ="No state";
 // DCF77 StatusStrings
-char prgsDCF77StateInit[] PROGMEM = "init";
-char prgsDCF77StateSyncing[] PROGMEM = "receiving data";
-char prgsDCF77StateWait4Sync[] PROGMEM = "wait 4 data";
-char prgsDCF77StateUnknown[] PROGMEM = "unknown";
+const char prgsDCF77StateInit[] PROGMEM = "init";
+const char prgsDCF77StateSyncing[] PROGMEM = "receiving data";
+const char prgsDCF77StateWait4Sync[] PROGMEM = "wait 4 data";
+const char prgsDCF77StateUnknown[] PROGMEM = "unknown";
 // Input keys
 char sKeyYes[2]="y";
 char sKeyNo[2]="n";
@@ -476,11 +477,11 @@ static void fGetLastDCF77StatusString(uint8_t iRes,char *psStatMsg);
 static void fGetShortDayString(uint8_t iDayNumber,char *psShortDay);
 static void fUInt8To2CharStr(uint8_t iNum, char *s2CharStr);
 static void fLCDPutStringCenter(char *sOut,uint8_t iLineNumber);
-static void fCopyStringCenter(char *sString, char *sOut, uint8_t iMaxStrLength);
+/* static void fCopyStringCenter(char *sString, char *sOut, uint8_t iMaxStrLength); */
 static void fGetCenterAndFilledUpString(char *sIn, char *sOut,uint8_t iLength);
 static uint8_t fSplitCommandFromParameter(char *psInput, char* psCommand, char* psParameter);
 static uint8_t fCheckAndConvertPulsWidth(char *sIn,uint8_t *iOut);
-static void fPrintIntToUART(char *sIn,int16_t iIn);
+/* static void fPrintIntToUART(char *sIn,int16_t iIn); */ 
 // end functions prototypes
 
 TTime stClientTime={0,0,0,FALSE,TRUE}, tDisplayLastPowerFault={0,0,0,FALSE,FALSE} ,tDisplayClientTimeLastPowerFault={0,0,0,FALSE,FALSE};
@@ -621,7 +622,7 @@ int main(void){
 					fUpdateTimeString(sTime,&stClientTime);
 					//lcd_puts("TIME ON CLIENTS:");
 					// fLCDPutStringCenter(sTimeOnSlaves,0);
-					fGetCenterAndFilledUpString(sTimeOnSlaves,sDisplayLine1,sizeof(sDisplayLine1)-1);
+					fGetCenterAndFilledUpString((char*)sTimeOnSlaves,sDisplayLine1,sizeof(sDisplayLine1)-1);
 					//lcd_gotoxy(0,1);
 					//lcd_puts(sTime);
 					//fLCDPutStringCenter(sTime,1);
@@ -634,7 +635,7 @@ int main(void){
 						//lcd_gotoxy(0,0);
 						//lcd_puts("Syncing clock...");
 						//fLCDPutStringCenter(sSyncingClocks,0);
-						fGetCenterAndFilledUpString(sSyncingClocks,sDisplayLine1,sizeof(sDisplayLine1)-1);
+						fGetCenterAndFilledUpString((char*)sSyncingClocks,sDisplayLine1,sizeof(sDisplayLine1)-1);
 						//lcd_gotoxy(0,1);
 						itoa(iTimeDiff,sOutputLine,10);
 						//lcd_puts(sOutputLine);
@@ -652,10 +653,10 @@ int main(void){
 					//lcd_gotoxy(0,0);
 					//lcd_puts("DCF77: ");
 					// fLCDPutStringCenter(sDCF77mode,0);
-					fGetCenterAndFilledUpString(sDCF77mode,sDisplayLine1,sizeof(sDisplayLine1)-1);
+					fGetCenterAndFilledUpString((char*)sDCF77mode,sDisplayLine1,sizeof(sDisplayLine1)-1);
 					if(bDCF77){
 						//lcd_gotoxy(0,1);
-						fGetCenterAndFilledUpString(sDCF77StateON,sDisplayLine2,sizeof(sDisplayLine2)-1);
+						fGetCenterAndFilledUpString((char*)sDCF77StateON,sDisplayLine2,sizeof(sDisplayLine2)-1);
 						//strcpy(sOutputLine,sDCF77StateON);
 						//lcd_puts(sOutputLine);
 						//fLCDPutStringCenter(sOutputLine,1);
@@ -664,7 +665,7 @@ int main(void){
 						//lcd_gotoxy(0,1);
 						//lcd_puts("OFF");
 						//fLCDPutStringCenter(sDCF77StateOff,1);
-						fGetCenterAndFilledUpString(sDCF77StateOff,sDisplayLine2,sizeof(sDisplayLine2)-1);
+						fGetCenterAndFilledUpString((char*)sDCF77StateOff,sDisplayLine2,sizeof(sDisplayLine2)-1);
 					}
 				}	
 				if(iDisplayPage==3){
@@ -672,7 +673,7 @@ int main(void){
 					//lcd_gotoxy(0,0);
 					//lcd_puts("DCF77 STATUS: ");
 					//fLCDPutStringCenter(sDCF77State,0);
-					fGetCenterAndFilledUpString(sDCF77State,sDisplayLine1,sizeof(sDisplayLine1)-1);
+					fGetCenterAndFilledUpString((char*)sDCF77State,sDisplayLine1,sizeof(sDisplayLine1)-1);
 					if(bDCF77){
 						fGetLastDCF77StatusString(tDCF77DateTime.iDCF77Status,sTemp);
 						//strcpy(sOutputLine,sTemp);
@@ -690,7 +691,7 @@ int main(void){
 						//lcd_gotoxy(0,0);
 						//lcd_puts("DCF LAST RESULT:");
 						//fLCDPutStringCenter(sDCF77LastResult,0);
-						fGetCenterAndFilledUpString(sDCF77LastResult,sDisplayLine1,sizeof(sDisplayLine1)-1);
+						fGetCenterAndFilledUpString((char*)sDCF77LastResult,sDisplayLine1,sizeof(sDisplayLine1)-1);
 						fGetLastDCF77ResultString(tDCF77DateTime.iDCF77LastResult,sOutputLine);
 						//lcd_gotoxy(0,1);
 						//lcd_puts(sOutputLine);
@@ -705,7 +706,7 @@ int main(void){
 					if(bDCF77 && tDCF77DateTime.iDCF77Status==DCF77_SYNCING && iDCF77BitPointer>=1 && iDCF77BitPointer<=59){
 						//lcd_clrscr();
 						//fLCDPutStringCenter(sDCF77SyncStatus,0);
-						fGetCenterAndFilledUpString(sDCF77SyncStatus,sDisplayLine1,sizeof(sDisplayLine1)-1);
+						fGetCenterAndFilledUpString((char*)sDCF77SyncStatus,sDisplayLine1,sizeof(sDisplayLine1)-1);
 						strcpy(sOutputLine,"BIT:");
 						fUInt8To2CharStr(iDCF77BitPointer-1,sTemp);
 						strcat(sOutputLine,sTemp);
@@ -766,7 +767,7 @@ int main(void){
 				if(iDisplayPage==7){	
 					//lcd_clrscr();
 					//fLCDPutStringCenter(sSyncronisationMode,0);
-					fGetCenterAndFilledUpString(sSyncronisationMode,sDisplayLine1,sizeof(sDisplayLine1)-1);
+					fGetCenterAndFilledUpString((char*)sSyncronisationMode,sDisplayLine1,sizeof(sDisplayLine1)-1);
 					if(bSyncMode24h){
 						strcpy_P(sOutputLine,prgsSyncMode24h);
 						//fLCDPutStringCenter(sOutputLine,1);
@@ -1632,8 +1633,8 @@ ISR(INT1_vect){
 		}
 		if(bLCDDisplayOn){
 			lcd_clrscr();			
-			fLCDPutStringCenter(sPowerSupplyDownLine1,0);
-			fLCDPutStringCenter(sPowerSupplyDownLine2,1);
+			fLCDPutStringCenter((char*)sPowerSupplyDownLine1,0);
+			fLCDPutStringCenter((char*)sPowerSupplyDownLine2,1);
 		}
 	}
 	else{
@@ -1779,9 +1780,9 @@ static void fExecuteEverySecond(void){
 // Liest von uart hängt die gelesen Zeichen an psInput an
 // Liefert TRUE wenn die Eingabe abgeschlossen wurde, ansonsten 1
 int fReadUART(char *psInput,uint8_t iMaxInCharacters){
-		uint8_t iMaxChars=0;
+		//uint8_t iMaxChars=0;
 		static char sInput[MAX_INPUT_CHARACTERS];
-		iMaxChars = MAX_INPUT_CHARACTERS<iMaxInCharacters ? MAX_INPUT_CHARACTERS : iMaxInCharacters;
+		//iMaxChars = MAX_INPUT_CHARACTERS<iMaxInCharacters ? MAX_INPUT_CHARACTERS : iMaxInCharacters;
 		unsigned int iReceive;
 		iReceive=uart_getc();
 		// Errors
@@ -2215,6 +2216,7 @@ static void fGetCenterAndFilledUpString(char *sIn, char *sOut,uint8_t iLength){
 	}
 }
 
+/* Not used
 static void fCopyStringCenter(char *sString, char *sOut, uint8_t iMaxStrLength){
 	uint8_t iLength, iXStartPos,iLoop;
 	iLength=strlen(sString);
@@ -2229,6 +2231,7 @@ static void fCopyStringCenter(char *sString, char *sOut, uint8_t iMaxStrLength){
 		}
 	}
 }
+*/ 
 static uint8_t fSplitCommandFromParameter(char *psInput, char* psCommand, char* psParameter){
 	char *psToken;
 	psToken=strtok(psInput,";");
@@ -2243,6 +2246,7 @@ static uint8_t fSplitCommandFromParameter(char *psInput, char* psCommand, char* 
 		return(FALSE);
 	}
 }
+/* not used
 static uint8_t fString2UInt8(char *sIn,uint8_t *iOut){
 	char *pStrErrPos;
 	*iOut=(uint8_t)strtol(sIn,&pStrErrPos,10);
@@ -2259,6 +2263,7 @@ static uint8_t fString2UInt8(char *sIn,uint8_t *iOut){
 		return(FALSE);
 	}
 }
+* */
 static uint8_t fCheckAndConvertPulsWidth(char *sIn,uint8_t *iOut){
 	char *pStrErrPos;
 	long lConvertedNumber;
@@ -2276,6 +2281,7 @@ static uint8_t fCheckAndConvertPulsWidth(char *sIn,uint8_t *iOut){
 		return(FALSE);
 	}
 }
+/* not used
 static void fPrintIntToUART(char *sIn,int16_t iIn){
 	char sOut[20];
 	uart_puts(sIn);
@@ -2284,4 +2290,5 @@ static void fPrintIntToUART(char *sIn,int16_t iIn){
 	uart_puts(sOut);
 	uart_puts("\r\n");
 }
+*/
 
