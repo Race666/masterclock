@@ -526,7 +526,10 @@ uint8_t iShellPosition=SHELL_MENU_PROMPT;
 0=Client time
 ...
 */
-uint8_t iDisplayPage=0;
+enum eDisplayPage {
+	 DISPLAY_PAGE_TIME_ON_SLAVES=0,DISPLAY_PAGE_CLOCK_IS_SYNCING=1
+};
+uint8_t iDisplayPage=DISPLAY_PAGE_TIME_ON_SLAVES;
 
 // DisplayUpdate, wird in der function fExecuteEvery10telSecond gesetzt
 volatile uint8_t bUpdateDisplay=FALSE;
@@ -637,7 +640,7 @@ int main(void){
 		//if(TRUE){
 			/******** Begin Display Ausgabe ********/
 			/* Begin Strings für die AUsgabe erzeugen */
-				if (iDisplayPage==0){
+				if (iDisplayPage==DISPLAY_PAGE_TIME_ON_SLAVES){
 					//lcd_clrscr();
 					//lcd_gotoxy(0,0);
 					fUpdateTimeString(sTime,&stClientTime);
@@ -650,7 +653,7 @@ int main(void){
 					fGetCenterAndFilledUpString(sTime,sDisplayLine2,sizeof(sDisplayLine2)-1);
 					//fGetCenterAndFilledUpString()
 				}
-				if(iDisplayPage==1){
+				if(iDisplayPage==DISPLAY_PAGE_CLOCK_IS_SYNCING){
 					if(stNewTimeForClients.bReady4Sync){
 						//lcd_clrscr();
 						//lcd_gotoxy(0,0);
@@ -802,7 +805,7 @@ int main(void){
 					
 				}
 				if(iDisplayPage>=8){
-					iDisplayPage=0;
+					iDisplayPage=DISPLAY_PAGE_TIME_ON_SLAVES;
 				}
 			/* EndStrings für die AUsgabe erzeugen */
 			// Strings auf Display ausgeben
