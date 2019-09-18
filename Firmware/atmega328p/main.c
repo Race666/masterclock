@@ -523,7 +523,7 @@ uint8_t iShellPosition=0;
 ...
 */
 enum eShellMenuPosiotion{ 
-	SHELL_MENU_PROMPT=0
+	SHELL_MENU_PROMPT=0,SHELL_MENU_SMT
 };
 uint8_t iDisplayPage=0;
 
@@ -984,7 +984,6 @@ int main(void){
 						    bDCF77Debug=true;	
 						    uart_puts_p(prgsReturnOK);
 						}
-						iShellPosition=SHELL_MENU_PROMPT;
 					}	
 					#endif										
 					else if (strcmp(sCommand,"_stat")==0){
@@ -1177,7 +1176,7 @@ int main(void){
 					if (iShellPosition==SHELL_MENU_PROMPT){
 						if (strcmp(sInput,"smt")==0){
 							// Eingabe der aktuellen Zeit auf den Clients
-							iShellPosition=1;
+							iShellPosition=SHELL_MENU_SMT;
 							uart_puts_p(prgsSCTQuest);
 							//uart_puts("Enter current time on clients:\r\n");
 						}
@@ -1372,7 +1371,7 @@ int main(void){
 						}
 					}
 					// 1= Eingabe Zeit auf den Cliebt/Nebenuhren
-					else if (iShellPosition==1){
+					else if (iShellPosition==SHELL_MENU_SMT){
 						if (fConvertInput2Time(sInput,&stClientTime)){
 							uart_puts(TERM_FG_GREEN_BRIGHT);
 							uart_puts_p(prgsPrintok);
