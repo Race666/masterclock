@@ -148,7 +148,7 @@ char sFirmwareVersion[17]="V2.00b2";
 #define HIGH 1
 #define LOW 0
 // End Konstanten für DCF77
-#define DCF_DEBUG FALSE
+#define DCF_DEBUG TRUE
 // Wie oft die Displayseite wechseln
 #define CHANGE_DISPLAY_PAGE_IN_SEC 5
 
@@ -527,7 +527,18 @@ uint8_t iShellPosition=SHELL_MENU_PROMPT;
 ...
 */
 enum eDisplayPage {
-	 DISPLAY_PAGE_TIME_ON_SLAVES=0, DISPLAY_PAGE_CLOCK_IS_SYNCING=1, DISPLAY_PAGE_DCF_OP_MODE=2, DISPLAY_PAGE_DCF_STATUS=3, DISPLAY_PAGE_DCF_LAST_RESULT=4, DISPLAY_PAGE_DCF_RECEIVE_BIT_STATE=5, DISPLAY_PAGE_DCF_SHOW_DATE_TIME=6, DISPLAY_PAGE_CLOCK_SYNC_MODE_12H_24H=7, DISPLAY_PAGE_INVALID=8, DISPLAY_PAGE_DCF_DEBUG_TIMING=9
+	 DISPLAY_PAGE_TIME_ON_SLAVES=0,
+	 DISPLAY_PAGE_CLOCK_IS_SYNCING=1,
+	 DISPLAY_PAGE_DCF_OP_MODE=2,
+	 DISPLAY_PAGE_DCF_STATUS=3,
+	 DISPLAY_PAGE_DCF_LAST_RESULT=4,
+	 DISPLAY_PAGE_DCF_RECEIVE_BIT_STATE=5,
+	 DISPLAY_PAGE_DCF_SHOW_DATE_TIME=6,
+	 DISPLAY_PAGE_CLOCK_SYNC_MODE_12H_24H=7,
+	 DISPLAY_PAGE_INVALID=8
+#if DCF_DEBUG	
+	 ,DISPLAY_PAGE_DCF_DEBUG_TIMING=9
+#endif
 };
 uint8_t iDisplayPage=DISPLAY_PAGE_TIME_ON_SLAVES;
 
@@ -804,6 +815,11 @@ int main(void){
 					}
 					
 				}
+				#if DCF_DEBUG	
+				if(iDisplayPage==DISPLAY_PAGE_DCF_DEBUG_TIMING){
+					
+				}
+				#endif
 			/* EndStrings für die AUsgabe erzeugen */
 			// Strings auf Display ausgeben
 			if(bUpdateDisplay && bLCDDisplayOn){
@@ -1806,16 +1822,21 @@ static void fExecuteEverySecond(void){
 	else{
 		iDisplayPageSecCount=CHANGE_DISPLAY_PAGE_IN_SEC;
 		// Kein weiterschalten des Displays im debug mode
+#if DCF_DEBUG		
 		if(iDisplayPage!=DISPLAY_PAGE_DCF_DEBUG_TIMING)
 		{
+#endif			
 			iDisplayPage++;
 			// Wenn Page invalid und nicht debug -> reset 
 			if(iDisplayPage>=DISPLAY_PAGE_INVALID)
 			{
 				iDisplayPage=DISPLAY_PAGE_TIME_ON_SLAVES;
-			}		
+			}	
+#if DCF_DEBUG					
 		}	
+#endif			
 	}
+
 	// Falls DCF77 Zeit gültig, Zeit der Gültigkeit um 1Sekunde verringern
 	if(tDCF77DateTime.iIsValidForSeconds>0){tDCF77DateTime.iIsValidForSeconds--;}
 	if(tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds<0xffffffff){
@@ -2288,12 +2309,29 @@ static void fGetCenterAndFilledUpString(char *sIn, char *sOut,uint8_t iLength){
 	if(iStartPos>=0){
 		pStrpos+=iStartPos;
 		for(iLoop=0;iLoop<strlen(sIn);iLoop++){
+			if(iLoop<iLength)
+			{
 				*pStrpos=sIn[iLoop];
 				pStrpos++;
+			}	
 		}
 	}
 }
-
+static void fGetLeftAlignedFilledUpString(char *sIn, char *sOut,uint8_t iLength){
+	int8_t iLoop;
+	char *pStrpos;
+	sOut[0]='\0';
+	pStrpos=sOut;
+	// Clear String
+	for(iLoop=0;iLoop<iLength;iLoop++){strcat(sOut,"\x20");}
+	for(iLoop=0;iLoop<strlen(sIn);iLoop++){
+		if(iLoop<iLength)
+		{
+			*pStrpos=sIn[iLoop];
+			pStrpos++;
+		}	
+	}
+}
 /* Not used
 static void fCopyStringCenter(char *sString, char *sOut, uint8_t iMaxStrLength){
 	uint8_t iLength, iXStartPos,iLoop;

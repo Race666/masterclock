@@ -52,6 +52,8 @@
  * Use 0 for HD44780 controller, change to 1 for displays with KS0073 controller.
  */
 #define LCD_CONTROLLER_KS0073 0  /**< Use 0 for HD44780 controller, 1 for KS0073 controller */
+#define KS0073_4LINES_MODE 0 /* To suppress compiler Warning */
+
 
 /** 
  *  @name  Definitions for Display Size 
