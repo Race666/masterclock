@@ -522,6 +522,9 @@ uint8_t iShellPosition=0;
 0=Client time
 ...
 */
+enum eShellMenuPosiotion{ 
+	SHELL_MENU_PROMPT=0
+};
 uint8_t iDisplayPage=0;
 
 // DisplayUpdate, wird in der function fExecuteEvery10telSecond gesetzt
@@ -873,7 +876,7 @@ int main(void){
 			/*************** Begin Shell ****************/
 			if(fReadUART(sInput,sizeof(sInput))){
 				if(strcmp(sInput,"\3")==0){
-					iShellPosition=0;
+					iShellPosition=SHELL_MENU_PROMPT;
 					uart_puts("STRG-C\n\r");
 					sInput[0]='\0';
 				}
@@ -981,7 +984,7 @@ int main(void){
 						    bDCF77Debug=true;	
 						    uart_puts_p(prgsReturnOK);
 						}
-						iShellPosition=0;
+						iShellPosition=SHELL_MENU_PROMPT;
 					}	
 					#endif										
 					else if (strcmp(sCommand,"_stat")==0){
@@ -1171,7 +1174,7 @@ int main(void){
 				}
 				else{
 					// Shell
-					if (iShellPosition==0){
+					if (iShellPosition==SHELL_MENU_PROMPT){
 						if (strcmp(sInput,"smt")==0){
 							// Eingabe der aktuellen Zeit auf den Clients
 							iShellPosition=1;
@@ -1380,7 +1383,7 @@ int main(void){
 							uart_puts_p(prgsInvalidTime);
 							uart_puts(TERM_RESET);
 						}
-						iShellPosition=0;
+						iShellPosition=SHELL_MENU_PROMPT;
 					}
 					else if (iShellPosition==2){
 						if (fConvertInput2Time(sInput,&stNewTimeForClients)){
@@ -1395,7 +1398,7 @@ int main(void){
 							uart_puts_p(prgsInvalidTime);
 							uart_puts(TERM_RESET);
 						}
-						iShellPosition=0;
+						iShellPosition=SHELL_MENU_PROMPT;
 					}
 					else if (iShellPosition==3){
 						if (fConvertInput2Time(sInput,&stNewTimeForClients)){
@@ -1410,7 +1413,7 @@ int main(void){
 							uart_puts_p(prgsInvalidTime);
 							uart_puts(TERM_RESET);
 						}
-						iShellPosition=0;
+						iShellPosition=SHELL_MENU_PROMPT;
 					}			
 					else if (iShellPosition==4){
 						if(strcmp(sInput,sKeyYes)==0){
@@ -1437,7 +1440,7 @@ int main(void){
 						else{
 							uart_puts_p(prgsWrongInput);
 						}
-						iShellPosition=0;
+						iShellPosition=SHELL_MENU_PROMPT;
 					}
 					else if (iShellPosition==5){
 						if(strcmp(sInput,sKeyYes)==0){
@@ -1464,7 +1467,7 @@ int main(void){
 							uart_puts_p(prgsWrongInput);
 							uart_puts(TERM_RESET);
 						}
-						iShellPosition=0;
+						iShellPosition=SHELL_MENU_PROMPT;
 					}	
 					else if (iShellPosition==6){
 						if(strcmp(sInput,sKeyYes)==0){
@@ -1491,7 +1494,7 @@ int main(void){
 							uart_puts_p(prgsWrongInput);
 							uart_puts(TERM_RESET);
 						}
-						iShellPosition=0;
+						iShellPosition=SHELL_MENU_PROMPT;
 					}
 					
 					else if (iShellPosition==7){
@@ -1515,16 +1518,16 @@ int main(void){
 							uart_puts_p(prgsWrongInput);
 							uart_puts(TERM_RESET);
 						}
-						iShellPosition=0;
+						iShellPosition=SHELL_MENU_PROMPT;
 					}
 					else{
-						iShellPosition=0;
+						iShellPosition=SHELL_MENU_PROMPT;
 					}
 				}
 				strcpy(sInput,"");
 				sCommand[0]='\0';
 				sParameter[0]='\0';
-				if (iShellPosition==0){
+				if (iShellPosition==SHELL_MENU_PROMPT){
 					uart_puts(sPrompt);
 				}
 			}
