@@ -527,7 +527,7 @@ uint8_t iShellPosition=SHELL_MENU_PROMPT;
 ...
 */
 enum eDisplayPage {
-	 DISPLAY_PAGE_TIME_ON_SLAVES=0, DISPLAY_PAGE_CLOCK_IS_SYNCING=1, DISPLAY_PAGE_DCF_OP_MODE=2, DISPLAY_PAGE_DCF_STATUS=3, DISPLAY_PAGE_DCF_LAST_RESULT=4, DISPLAY_PAGE_DCF_RECEIVE_BIT_STATE=5
+	 DISPLAY_PAGE_TIME_ON_SLAVES=0, DISPLAY_PAGE_CLOCK_IS_SYNCING=1, DISPLAY_PAGE_DCF_OP_MODE=2, DISPLAY_PAGE_DCF_STATUS=3, DISPLAY_PAGE_DCF_LAST_RESULT=4, DISPLAY_PAGE_DCF_RECEIVE_BIT_STATE=5, DISPLAY_PAGE_DCF_SHOW_DATE_TIME=6, DISPLAY_PAGE_CLOCK_SYNC_MODE_12H_24H=7, DISPLAY_PAGE_INVALID=8
 };
 uint8_t iDisplayPage=DISPLAY_PAGE_TIME_ON_SLAVES;
 
@@ -753,7 +753,7 @@ int main(void){
 						iDisplayPage++;
 					}
 				}
-				if(iDisplayPage==6){
+				if(iDisplayPage==DISPLAY_PAGE_DCF_SHOW_DATE_TIME){
 					if(bDCF77 && tDCF77DateTime.iIsValidForSeconds>0){
 						//lcd_clrscr();
 						strcpy(sOutputLine,"DCF77:");
@@ -788,7 +788,7 @@ int main(void){
 						iDisplayPage++;
 					}
 				}	
-				if(iDisplayPage==7){	
+				if(iDisplayPage==DISPLAY_PAGE_CLOCK_SYNC_MODE_12H_24H){	
 					//lcd_clrscr();
 					//fLCDPutStringCenter(sSyncronisationMode,0);
 					fGetCenterAndFilledUpString((char*)sSyncronisationMode,sDisplayLine1,sizeof(sDisplayLine1)-1);
@@ -804,7 +804,7 @@ int main(void){
 					}
 					
 				}
-				if(iDisplayPage>=8){
+				if(iDisplayPage>=DISPLAY_PAGE_INVALID){
 					iDisplayPage=DISPLAY_PAGE_TIME_ON_SLAVES;
 				}
 			/* EndStrings für die AUsgabe erzeugen */
