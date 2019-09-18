@@ -517,7 +517,7 @@ char sParameter[10];
 2=Eingabe neue Zeit für Clients
 .....
 */
-uint8_t iMenuPosition=0;
+uint8_t iShellPosition=0;
 /* DisplayPage
 0=Client time
 ...
@@ -873,7 +873,7 @@ int main(void){
 			/*************** Begin Shell ****************/
 			if(fReadUART(sInput,sizeof(sInput))){
 				if(strcmp(sInput,"\3")==0){
-					iMenuPosition=0;
+					iShellPosition=0;
 					uart_puts("STRG-C\n\r");
 					sInput[0]='\0';
 				}
@@ -981,7 +981,7 @@ int main(void){
 						    bDCF77Debug=true;	
 						    uart_puts_p(prgsReturnOK);
 						}
-						iMenuPosition=0;
+						iShellPosition=0;
 					}	
 					#endif										
 					else if (strcmp(sCommand,"_stat")==0){
@@ -1171,10 +1171,10 @@ int main(void){
 				}
 				else{
 					// Shell
-					if (iMenuPosition==0){
+					if (iShellPosition==0){
 						if (strcmp(sInput,"smt")==0){
 							// Eingabe der aktuellen Zeit auf den Clients
-							iMenuPosition=1;
+							iShellPosition=1;
 							uart_puts_p(prgsSCTQuest);
 							//uart_puts("Enter current time on clients:\r\n");
 						}
@@ -1190,7 +1190,7 @@ int main(void){
 						else if (strcmp(sInput,"nst")==0){
 							if(! bDCF77){
 								// Eingabe der aktuellen Zeit auf den Clients, Synctime bleibt stehen(wenn auf Clients eine definierte Zeit eingestellt werden muß)
-								iMenuPosition=2;
+								iShellPosition=2;
 								uart_puts_p(prgsNCTQuest);
 								//uart_puts("Enter current time on clients:\r\n");
 							}
@@ -1202,7 +1202,7 @@ int main(void){
 						else if (strcmp(sInput,"ast")==0){
 							if(! bDCF77){
 								// Eingabe der aktuellen Zeit auf den Clients, Synctime läuft weiter(wenn auf Clients die Zeit gestellt werden soll)
-								iMenuPosition=3;
+								iShellPosition=3;
 								uart_puts_p(prgsACTQuest);
 							}
 							else{
@@ -1211,7 +1211,7 @@ int main(void){
 						}					
 						else if (strcmp(sInput,"dcf")==0){
 							// DCF on/off
-							iMenuPosition=4;
+							iShellPosition=4;
 							//uart_puts("Set DCF on ? (y|n): ");
 							uart_puts_p(prgsDCF77Head);
 							if (bDCF77){uart_puts_p(prgsDCF77QuestOn);}else{uart_puts_p(prgsDCF77QuestOff);}
@@ -1219,7 +1219,7 @@ int main(void){
 						}		
 						else if (strcmp(sInput,"pst")==0){
 							// Pause für die Clients?
-							iMenuPosition=5;
+							iShellPosition=5;
 							//uart_puts("Set DCF on ? (y|n): ");
 							uart_puts_p(prgsPCTStat);
 							if (stClientTime.bIncTime){uart_puts_p(prgsPCTQuestPaused);}else{uart_puts_p(prgsPCTQuestContinue);}
@@ -1227,7 +1227,7 @@ int main(void){
 						}				
 						else if (strcmp(sInput,"ssm")==0){
 							// DCF on/off
-							iMenuPosition=6;
+							iShellPosition=6;
 							uart_puts_p(prgsSyncMode24hHead);
 							if (bSyncMode24h){uart_puts_p(prgsSyncMode24hQuest12);}else{uart_puts_p(prgsSyncMode24hQuest24);}
 						}							
@@ -1239,7 +1239,7 @@ int main(void){
 						
 						else if (strcmp(sInput,"spw")==0){
 							// Ändern der Impulsweite der Ausgänge 
-							iMenuPosition=7;
+							iShellPosition=7;
 							uart_puts_p(prgsPulsWidthQuest);
 						}	
 						else if (strcmp(sInput,"stat")==0){
@@ -1369,7 +1369,7 @@ int main(void){
 						}
 					}
 					// 1= Eingabe Zeit auf den Cliebt/Nebenuhren
-					else if (iMenuPosition==1){
+					else if (iShellPosition==1){
 						if (fConvertInput2Time(sInput,&stClientTime)){
 							uart_puts(TERM_FG_GREEN_BRIGHT);
 							uart_puts_p(prgsPrintok);
@@ -1380,9 +1380,9 @@ int main(void){
 							uart_puts_p(prgsInvalidTime);
 							uart_puts(TERM_RESET);
 						}
-						iMenuPosition=0;
+						iShellPosition=0;
 					}
-					else if (iMenuPosition==2){
+					else if (iShellPosition==2){
 						if (fConvertInput2Time(sInput,&stNewTimeForClients)){
 							uart_puts(TERM_FG_GREEN_BRIGHT);
 							uart_puts_p(prgsPrintok);
@@ -1395,9 +1395,9 @@ int main(void){
 							uart_puts_p(prgsInvalidTime);
 							uart_puts(TERM_RESET);
 						}
-						iMenuPosition=0;
+						iShellPosition=0;
 					}
-					else if (iMenuPosition==3){
+					else if (iShellPosition==3){
 						if (fConvertInput2Time(sInput,&stNewTimeForClients)){
 							uart_puts(TERM_FG_GREEN_BRIGHT);
 							uart_puts_p(prgsPrintok);
@@ -1410,9 +1410,9 @@ int main(void){
 							uart_puts_p(prgsInvalidTime);
 							uart_puts(TERM_RESET);
 						}
-						iMenuPosition=0;
+						iShellPosition=0;
 					}			
-					else if (iMenuPosition==4){
+					else if (iShellPosition==4){
 						if(strcmp(sInput,sKeyYes)==0){
 							if(! bDCF77){
 								uart_puts(TERM_FG_GREEN_BRIGHT);
@@ -1437,9 +1437,9 @@ int main(void){
 						else{
 							uart_puts_p(prgsWrongInput);
 						}
-						iMenuPosition=0;
+						iShellPosition=0;
 					}
-					else if (iMenuPosition==5){
+					else if (iShellPosition==5){
 						if(strcmp(sInput,sKeyYes)==0){
 							if(! stClientTime.bIncTime){
 								uart_puts(TERM_FG_WHITE_BRIGHT);
@@ -1464,9 +1464,9 @@ int main(void){
 							uart_puts_p(prgsWrongInput);
 							uart_puts(TERM_RESET);
 						}
-						iMenuPosition=0;
+						iShellPosition=0;
 					}	
-					else if (iMenuPosition==6){
+					else if (iShellPosition==6){
 						if(strcmp(sInput,sKeyYes)==0){
 							if(! bSyncMode24h){
 								uart_puts(TERM_FG_GREEN_BRIGHT);
@@ -1491,10 +1491,10 @@ int main(void){
 							uart_puts_p(prgsWrongInput);
 							uart_puts(TERM_RESET);
 						}
-						iMenuPosition=0;
+						iShellPosition=0;
 					}
 					
-					else if (iMenuPosition==7){
+					else if (iShellPosition==7){
 						if(fCheckAndConvertPulsWidth(sInput,&iTemp)){
 							iPulsWidthIn100ms=iTemp;
 							iPulsIntervalLengthInSec=CALC_PULSE_INTERVAL_LENGTH_IN_SEC(iPulsWidthIn100ms);
@@ -1515,16 +1515,16 @@ int main(void){
 							uart_puts_p(prgsWrongInput);
 							uart_puts(TERM_RESET);
 						}
-						iMenuPosition=0;
+						iShellPosition=0;
 					}
 					else{
-						iMenuPosition=0;
+						iShellPosition=0;
 					}
 				}
 				strcpy(sInput,"");
 				sCommand[0]='\0';
 				sParameter[0]='\0';
-				if (iMenuPosition==0){
+				if (iShellPosition==0){
 					uart_puts(sPrompt);
 				}
 			}
