@@ -517,14 +517,15 @@ char sParameter[10];
 2=Eingabe neue Zeit für Clients
 .....
 */
-uint8_t iShellPosition=0;
+enum eShellMenuPosition{ 
+	SHELL_MENU_PROMPT=0, SHELL_MENU_SMT, SHELL_MENU_NST, SHELL_MENU_AST, SHELL_MENU_DCF_ON_OFF, SHELL_MENU_PST
+};
+
+uint8_t iShellPosition=SHELL_MENU_PROMPT;
 /* DisplayPage
 0=Client time
 ...
 */
-enum eShellMenuPosiotion{ 
-	SHELL_MENU_PROMPT=0, SHELL_MENU_SMT, SHELL_MENU_NST, SHELL_MENU_AST, SHELL_MENU_DCF_ON_OFF
-};
 uint8_t iDisplayPage=0;
 
 // DisplayUpdate, wird in der function fExecuteEvery10telSecond gesetzt
@@ -1221,7 +1222,7 @@ int main(void){
 						}		
 						else if (strcmp(sInput,"pst")==0){
 							// Pause für die Clients?
-							iShellPosition=5;
+							iShellPosition=SHELL_MENU_PST;
 							//uart_puts("Set DCF on ? (y|n): ");
 							uart_puts_p(prgsPCTStat);
 							if (stClientTime.bIncTime){uart_puts_p(prgsPCTQuestPaused);}else{uart_puts_p(prgsPCTQuestContinue);}
@@ -1441,7 +1442,7 @@ int main(void){
 						}
 						iShellPosition=SHELL_MENU_PROMPT;
 					}
-					else if (iShellPosition==5){
+					else if (iShellPosition==SHELL_MENU_PST){
 						if(strcmp(sInput,sKeyYes)==0){
 							if(! stClientTime.bIncTime){
 								uart_puts(TERM_FG_WHITE_BRIGHT);
