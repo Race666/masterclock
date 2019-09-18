@@ -518,7 +518,7 @@ char sParameter[10];
 .....
 */
 enum eShellMenuPosition{ 
-	SHELL_MENU_PROMPT=0, SHELL_MENU_SMT, SHELL_MENU_NST, SHELL_MENU_AST, SHELL_MENU_DCF_ON_OFF, SHELL_MENU_PST
+	SHELL_MENU_PROMPT=0, SHELL_MENU_SMT, SHELL_MENU_NST, SHELL_MENU_AST, SHELL_MENU_DCF_ON_OFF, SHELL_MENU_PST, SHELL_MENU_SSM
 };
 
 uint8_t iShellPosition=SHELL_MENU_PROMPT;
@@ -1230,7 +1230,7 @@ int main(void){
 						}				
 						else if (strcmp(sInput,"ssm")==0){
 							// DCF on/off
-							iShellPosition=6;
+							iShellPosition=SHELL_MENU_SSM;
 							uart_puts_p(prgsSyncMode24hHead);
 							if (bSyncMode24h){uart_puts_p(prgsSyncMode24hQuest12);}else{uart_puts_p(prgsSyncMode24hQuest24);}
 						}							
@@ -1469,7 +1469,7 @@ int main(void){
 						}
 						iShellPosition=SHELL_MENU_PROMPT;
 					}	
-					else if (iShellPosition==6){
+					else if (iShellPosition==SHELL_MENU_SSM){
 						if(strcmp(sInput,sKeyYes)==0){
 							if(! bSyncMode24h){
 								uart_puts(TERM_FG_GREEN_BRIGHT);
