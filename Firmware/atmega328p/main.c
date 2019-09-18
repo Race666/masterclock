@@ -523,7 +523,7 @@ uint8_t iShellPosition=0;
 ...
 */
 enum eShellMenuPosiotion{ 
-	SHELL_MENU_PROMPT=0, SHELL_MENU_SMT, SHELL_MENU_NST
+	SHELL_MENU_PROMPT=0, SHELL_MENU_SMT, SHELL_MENU_NST, SHELL_MENU_AST
 };
 uint8_t iDisplayPage=0;
 
@@ -1204,7 +1204,7 @@ int main(void){
 						else if (strcmp(sInput,"ast")==0){
 							if(! bDCF77){
 								// Eingabe der aktuellen Zeit auf den Clients, Synctime läuft weiter(wenn auf Clients die Zeit gestellt werden soll)
-								iShellPosition=3;
+								iShellPosition=SHELL_MENU_AST;
 								uart_puts_p(prgsACTQuest);
 							}
 							else{
@@ -1399,7 +1399,7 @@ int main(void){
 						}
 						iShellPosition=SHELL_MENU_PROMPT;
 					}
-					else if (iShellPosition==3){
+					else if (iShellPosition==SHELL_MENU_AST){
 						if (fConvertInput2Time(sInput,&stNewTimeForClients)){
 							uart_puts(TERM_FG_GREEN_BRIGHT);
 							uart_puts_p(prgsPrintok);
