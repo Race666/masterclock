@@ -523,7 +523,7 @@ uint8_t iShellPosition=0;
 ...
 */
 enum eShellMenuPosiotion{ 
-	SHELL_MENU_PROMPT=0,SHELL_MENU_SMT
+	SHELL_MENU_PROMPT=0, SHELL_MENU_SMT, SHELL_MENU_NST
 };
 uint8_t iDisplayPage=0;
 
@@ -1192,7 +1192,7 @@ int main(void){
 						else if (strcmp(sInput,"nst")==0){
 							if(! bDCF77){
 								// Eingabe der aktuellen Zeit auf den Clients, Synctime bleibt stehen(wenn auf Clients eine definierte Zeit eingestellt werden muﬂ)
-								iShellPosition=2;
+								iShellPosition=SHELL_MENU_NST;
 								uart_puts_p(prgsNCTQuest);
 								//uart_puts("Enter current time on clients:\r\n");
 							}
@@ -1384,7 +1384,7 @@ int main(void){
 						}
 						iShellPosition=SHELL_MENU_PROMPT;
 					}
-					else if (iShellPosition==2){
+					else if (iShellPosition==SHELL_MENU_NST){
 						if (fConvertInput2Time(sInput,&stNewTimeForClients)){
 							uart_puts(TERM_FG_GREEN_BRIGHT);
 							uart_puts_p(prgsPrintok);
