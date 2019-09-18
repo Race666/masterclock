@@ -804,11 +804,6 @@ int main(void){
 					}
 					
 				}
-				// Wenn Page invalid und nicht debug -> reset 
-				if(iDisplayPage>=DISPLAY_PAGE_INVALID && iDisplayPage!=DISPLAY_PAGE_DCF_DEBUG_TIMING)
-				{
-					iDisplayPage=DISPLAY_PAGE_TIME_ON_SLAVES;
-				}
 			/* EndStrings für die AUsgabe erzeugen */
 			// Strings auf Display ausgeben
 			if(bUpdateDisplay && bLCDDisplayOn){
@@ -1810,7 +1805,16 @@ static void fExecuteEverySecond(void){
 	}
 	else{
 		iDisplayPageSecCount=CHANGE_DISPLAY_PAGE_IN_SEC;
-		iDisplayPage++;
+		// Kein weiterschalten des Displays im debug mode
+		if(iDisplayPage!=DISPLAY_PAGE_DCF_DEBUG_TIMING)
+		{
+			iDisplayPage++;
+			// Wenn Page invalid und nicht debug -> reset 
+			if(iDisplayPage>=DISPLAY_PAGE_INVALID)
+			{
+				iDisplayPage=DISPLAY_PAGE_TIME_ON_SLAVES;
+			}		
+		}	
 	}
 	// Falls DCF77 Zeit gültig, Zeit der Gültigkeit um 1Sekunde verringern
 	if(tDCF77DateTime.iIsValidForSeconds>0){tDCF77DateTime.iIsValidForSeconds--;}
