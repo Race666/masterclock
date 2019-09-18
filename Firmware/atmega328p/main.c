@@ -29,6 +29,7 @@ V1.09b3   05.09.2014 michael@albert-hetzles.de Pulse Delay wird dynamisch anhand
                                                Interval wird beim setzen des spw kommandos mitausgeben
 V1.09     17.09.2014 michael@albert-hetzles.de V1.09b3 -> V1.09WW											   
 V2.00b1   22.10.2018 michael@albert-hetzles.de Umstellung WinAVR -> Linux avr-gcc. Anpassung an avr-gcc 4.9.2 (Debian 9 stretch). Benötigte pakete apt-get install gcc-avr avr-libc
+V2.00b2   13.09.2019 michael@albert-hetzles.de Debug funktion für DCF77
 */
 /* TODO INTERRUPT */
 #include <avr/io.h>
@@ -37,6 +38,7 @@ V2.00b1   22.10.2018 michael@albert-hetzles.de Umstellung WinAVR -> Linux avr-gc
 #include <avr/eeprom.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <lcd.h>
 #include "uart.h"
 #include "terminal.h"
@@ -45,7 +47,7 @@ V2.00b1   22.10.2018 michael@albert-hetzles.de Umstellung WinAVR -> Linux avr-gc
 // #define LANG_EN
 #define LANG_DE
 // Version
-char sFirmwareVersion[17]="V2.00b1";
+char sFirmwareVersion[17]="V2.00b2";
 
 
 // Toogles a LED/Bit at Port and pin
@@ -146,7 +148,7 @@ char sFirmwareVersion[17]="V2.00b1";
 #define HIGH 1
 #define LOW 0
 // End Konstanten für DCF77
-
+#define DCF_DEBUG FALSE
 // Wie oft die Displayseite wechseln
 #define CHANGE_DISPLAY_PAGE_IN_SEC 5
 
@@ -195,6 +197,21 @@ enum eDCF77StatusCodes{
 enum eDCF77ReturnCodes{
 	DCF77_RECEIVE_COMPLETE_SUCCESSFULLY, DCF77_PARITY_ERROR_HOUR, DCF77_PARITY_ERROR_MINUTE, DCF77_PARITY_ERROR_DATE, DCF77_CYCLE_ERROR, DCF77_PULSE_RANGE_ERROR, DCF77_NO_STATUS
 };
+#if DCF_DEBUG
+// DCF77 Pulse Debug 
+typedef struct{
+	uint16_t  iPulseWidth;
+	uint16_t  iPauseWidth;
+	uint8_t DCF77LastResult;
+	uint8_t DCF77Status;
+} T_DCF77Debug;
+
+// DCF77 Debug
+volatile T_DCF77Debug tDCF77Debug  = {.iPulseWidth=0, .iPauseWidth=0, .DCF77LastResult=DCF77_NO_STATUS, .DCF77Status=DCF77_INIT};
+// DCF77 Debug. Ausgabe von Puls und Pauseweite auf Display
+bool bDCF77Debug=false;
+#endif
+
 
 // EEPROM Speicher für Uhrzeit
 uint8_t ee_iHourClientTime EEMEM = 0;
@@ -255,6 +272,8 @@ const char prgsDCF77NoRec[] PROGMEM = "Noch keine DCF77 Daten empfangen.";
 const char prgsDCF77Head[] PROGMEM = "DCF Sychnronistaion ist ";
 const char prgsDCF77QuestOn[] PROGMEM = "an. Ausschalten? (j|n): ";
 const char prgsDCF77QuestOff[] PROGMEM = "aus. Einschalten? (j|n): ";
+const char prgsDCF77DebugOn[] PROGMEM = "DCF debug aktiviert";
+const char prgsDCF77DebugOff[] PROGMEM = "DCF debug deaktiviert";
 const char prgsSetDCF77On[] PROGMEM = "DCF77 Synchronisation ein.\r\n";
 const char prgsSetDCF77Off[] PROGMEM = "DCF77 Synchronisation aus.\r\n";
 const char prgsSyncMode24hHead[] PROGMEM = "Syncmodus ist ";
@@ -369,6 +388,8 @@ const char prgsDCF77NoRec[] PROGMEM = "No DCF77 data received yet.";
 const char prgsDCF77Head[] PROGMEM = "DCF is ";
 const char prgsDCF77QuestOn[] PROGMEM = "on. Switch off? (y|n): ";
 const char prgsDCF77QuestOff[] PROGMEM = "off. Switch on? (y|n): ";
+const char prgsDCF77DebugOn[] PROGMEM = "DCF debug enabled";
+const char prgsDCF77DebugOff[] PROGMEM = "DCF debug disabled";
 const char prgsSetDCF77On[] PROGMEM = "Set dcf77 on.\r\n";
 const char prgsSetDCF77Off[] PROGMEM = "Set dcf77 off.\r\n";
 const char prgsSyncMode24hHead[] PROGMEM = "Syncmode is ";
@@ -539,11 +560,11 @@ static uint8_t aDCFData[60];
 static uint8_t iDCF77BitPointer=0;
 
 // Wird ein DCF77 Empfänger benutzt?
-uint8_t bDCF77 = FALSE;
+bool bDCF77 = false;
 // 24h Syncmodus?
-uint8_t bSyncMode24h = FALSE;
+bool bSyncMode24h = false;
 // LCD Display On?
-uint8_t bLCDDisplayOn = TRUE;
+bool bLCDDisplayOn = true;
 
 
 int main(void){
@@ -600,7 +621,7 @@ int main(void){
 		lcd_init(LCD_DISP_ON);
 		lcd_gotoxy(0,0);
 		lcd_clrscr();
-		bLCDDisplayOn=TRUE;
+		bLCDDisplayOn=true;
 		fLCDPutStringCenter(sClockName,0);
 		//lcd_puts("Race Masterclock");
 		//lcd_gotoxy(0,1);
@@ -608,7 +629,7 @@ int main(void){
 		fLCDPutStringCenter(sFirmwareVersion,1);
 	}
 	else{
-		bLCDDisplayOn=FALSE;
+		bLCDDisplayOn=false;
 		fInitLEDIOPorts();
 	}
 	for(;;){
@@ -893,13 +914,13 @@ int main(void){
 					}					
 					else if (strcmp(sCommand,"_dcf")==0){
 						if (strcmp(sParameter,"1")==0){
-							bDCF77=TRUE;
+							bDCF77=true;
 							eeprom_write_byte(&ee_bDCF77,TRUE);
 							fInitDCF77();
 							uart_puts_p(prgsReturnOK);
 						}
 						else if (strcmp(sParameter,"0")==0){
-							bDCF77=FALSE;
+							bDCF77=false;
 							eeprom_write_byte(&ee_bDCF77,FALSE);
 							fDisableDCF77();
 							uart_puts_p(prgsReturnOK);
@@ -911,12 +932,12 @@ int main(void){
 					}				
 					else if (strcmp(sCommand,"_ssm")==0){
 						if (strcmp(sParameter,"1")==0){
-							bSyncMode24h=TRUE;
+							bSyncMode24h=true;
 							eeprom_write_byte(&ee_bSyncMode24h,TRUE);
 							uart_puts_p(prgsReturnOK);
 						}
 						else if (strcmp(sParameter,"0")==0){
-							bSyncMode24h=FALSE;
+							bSyncMode24h=false;
 							eeprom_write_byte(&ee_bSyncMode24h,FALSE);
 							uart_puts_p(prgsReturnOK);
 						}
@@ -1209,7 +1230,22 @@ int main(void){
 							// Ändern der Impulsweite der Ausgänge 
 							iMenuPosition=7;
 							uart_puts_p(prgsPulsWidthQuest);
-						}						
+						}	
+						#if DCF_DEBUG
+						else if (strcmp(sInput,"dbgdcf")==0){
+							if(bDCF77Debug==true && bDCF77==true)
+							{
+								bDCF77Debug=false;
+								uart_puts_p(prgsDCF77DebugOff);
+							}
+							else if(bDCF77==true)
+							{
+							    bDCF77Debug=true;	
+							    uart_puts_p(prgsDCF77DebugOn);
+							}
+							iMenuPosition=0;
+						}	
+						#endif
 						else if (strcmp(sInput,"stat")==0){
 								uart_puts(TERM_FG_WHITE_BRIGHT);	
 								uart_puts(sClockName);
@@ -1386,7 +1422,7 @@ int main(void){
 								uart_puts(TERM_FG_GREEN_BRIGHT);
 								uart_puts_p(prgsSetDCF77On);
 								uart_puts(TERM_RESET);
-								bDCF77=TRUE;
+								bDCF77=true;
 								eeprom_write_byte(&ee_bDCF77,TRUE);
 								fInitDCF77();
 							}
@@ -1394,7 +1430,7 @@ int main(void){
 								uart_puts(TERM_FG_GREEN_BRIGHT);
 								uart_puts_p(prgsSetDCF77Off);
 								uart_puts(TERM_RESET);
-								bDCF77=FALSE;
+								bDCF77=false;
 								eeprom_write_byte(&ee_bDCF77,FALSE);
 								fDisableDCF77();
 							}
@@ -1440,14 +1476,14 @@ int main(void){
 								uart_puts(TERM_FG_GREEN_BRIGHT);
 								uart_puts_p(prgsSetSyncMode24hOn);
 								uart_puts(TERM_RESET);
-								bSyncMode24h=TRUE;
+								bSyncMode24h=true;
 								eeprom_write_byte(&ee_bSyncMode24h,TRUE);
 							}
 							else{
 								uart_puts(TERM_FG_GREEN_BRIGHT);
 								uart_puts_p(prgsSetSyncMode24hOff);
 								uart_puts(TERM_RESET);
-								bSyncMode24h=FALSE;
+								bSyncMode24h=false;
 								eeprom_write_byte(&ee_bSyncMode24h,FALSE);
 							}
 						}
@@ -2022,9 +2058,11 @@ ISR(INT0_vect){
 		// Counter Stop, Pausenwert lesen
 		TIMER1_STOP;
 		iPauseWidth=TCNT1;
+#if DCF_DEBUG
+		tDCF77Debug.iPauseWidth=iPauseWidth;
+#endif		
 		// Start Counter
 		TIMER1_START_DIV1024;
-
 		// Vorheriges Puls + Pausenzeit überprüfen. Bits 0-57
 		if (tDCF77DateTime.iDCF77Status==DCF77_SYNCING){
 			// Gültiges Signal
@@ -2037,6 +2075,10 @@ ISR(INT0_vect){
 				// Undefiniert Puls + Pause Zeit
 				tDCF77DateTime.iDCF77LastResult=DCF77_CYCLE_ERROR;
 				tDCF77DateTime.iDCF77Status=DCF77_WAIT_FOR_SYNCING;
+#if DCF_DEBUG				
+				tDCF77Debug.DCF77LastResult=DCF77_CYCLE_ERROR;
+				tDCF77Debug.DCF77Status=DCF77_WAIT_FOR_SYNCING;
+#endif				
 			}
 
 		}
@@ -2055,6 +2097,9 @@ ISR(INT0_vect){
 			}
 			iDCF77BitPointer=0;
 			tDCF77DateTime.iDCF77Status=DCF77_SYNCING;
+#if DCF_DEBUG			
+			tDCF77Debug.DCF77Status=DCF77_SYNCING;
+#endif			
 		}
 	}
 	else{
@@ -2062,6 +2107,9 @@ ISR(INT0_vect){
 		TIMER1_STOP;
 		// Pausenzeit speichern
 		iPulseWidth=TCNT1;
+#if DCF_DEBUG		
+		tDCF77Debug.iPulseWidth=iPulseWidth;
+#endif		
 		// Timer wieder starten
 		TIMER1_START_DIV1024
 		if(tDCF77DateTime.iDCF77Status==DCF77_SYNCING){
@@ -2077,6 +2125,10 @@ ISR(INT0_vect){
 				// Undefinierte Puls Zeit
 				tDCF77DateTime.iDCF77LastResult=DCF77_PULSE_RANGE_ERROR;
 				tDCF77DateTime.iDCF77Status=DCF77_WAIT_FOR_SYNCING;	
+#if DCF_DEBUG				
+				tDCF77Debug.DCF77LastResult=DCF77_PULSE_RANGE_ERROR;
+				tDCF77Debug.DCF77Status=DCF77_WAIT_FOR_SYNCING;
+#endif				
 			}
 			// 59 Bit Empfangen->fertig (0-58)
 			if((tDCF77DateTime.iDCF77Status==DCF77_SYNCING) && (iDCF77BitPointer>=58)){
@@ -2093,6 +2145,10 @@ ISR(INT0_vect){
 				else{
 					tDCF77DateTime.iDCF77LastResult=DCF77_PARITY_ERROR_MINUTE;
 					tDCF77DateTime.iDCF77Status=DCF77_WAIT_FOR_SYNCING;	
+#if DCF_DEBUG					
+					tDCF77Debug.DCF77LastResult=DCF77_PARITY_ERROR_MINUTE;
+					tDCF77Debug.DCF77Status=DCF77_WAIT_FOR_SYNCING;
+#endif					
 				}
 				// AUswertung
 				// Hour Bit 29-34
@@ -2104,7 +2160,11 @@ ISR(INT0_vect){
 				}
 				else{
 					tDCF77DateTime.iDCF77LastResult=DCF77_PARITY_ERROR_HOUR;
-					tDCF77DateTime.iDCF77Status=DCF77_WAIT_FOR_SYNCING;						
+					tDCF77DateTime.iDCF77Status=DCF77_WAIT_FOR_SYNCING;		
+#if DCF_DEBUG						
+					tDCF77Debug.DCF77LastResult=DCF77_PARITY_ERROR_HOUR;
+					tDCF77Debug.DCF77Status=DCF77_WAIT_FOR_SYNCING;
+#endif					
 				}
 				// AUswertung
 				// Datum Bit 36-58
@@ -2125,11 +2185,19 @@ ISR(INT0_vect){
 					tDCF77DateTime.iIsValidForSeconds=DCF77_IS_VALID_FOR_SECONDS;
 					tDCF77DateTime.iDCF77LastResult=DCF77_RECEIVE_COMPLETE_SUCCESSFULLY;
 					tDCF77DateTime.iDCF77Status=DCF77_WAIT_FOR_SYNCING;	
+#if DCF_DEBUG					
+					tDCF77Debug.DCF77LastResult=DCF77_RECEIVE_COMPLETE_SUCCESSFULLY;
+					tDCF77Debug.DCF77Status=DCF77_WAIT_FOR_SYNCING;					
+#endif					
 					tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds=0;
 				}
 				else{
 					tDCF77DateTime.iDCF77LastResult=DCF77_PARITY_ERROR_DATE;
 					tDCF77DateTime.iDCF77Status=DCF77_WAIT_FOR_SYNCING;	
+#if DCF_DEBUG					
+					tDCF77Debug.DCF77LastResult=DCF77_PARITY_ERROR_DATE;
+					tDCF77Debug.DCF77Status=DCF77_WAIT_FOR_SYNCING;							
+#endif					
 				}
 			}
 			iDCF77BitPointer++;		
