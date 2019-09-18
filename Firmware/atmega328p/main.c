@@ -523,7 +523,7 @@ uint8_t iShellPosition=0;
 ...
 */
 enum eShellMenuPosiotion{ 
-	SHELL_MENU_PROMPT=0, SHELL_MENU_SMT, SHELL_MENU_NST, SHELL_MENU_AST
+	SHELL_MENU_PROMPT=0, SHELL_MENU_SMT, SHELL_MENU_NST, SHELL_MENU_AST, SHELL_MENU_DCF_ON_OFF
 };
 uint8_t iDisplayPage=0;
 
@@ -1213,7 +1213,7 @@ int main(void){
 						}					
 						else if (strcmp(sInput,"dcf")==0){
 							// DCF on/off
-							iShellPosition=4;
+							iShellPosition=SHELL_MENU_DCF_ON_OFF;
 							//uart_puts("Set DCF on ? (y|n): ");
 							uart_puts_p(prgsDCF77Head);
 							if (bDCF77){uart_puts_p(prgsDCF77QuestOn);}else{uart_puts_p(prgsDCF77QuestOff);}
@@ -1414,7 +1414,7 @@ int main(void){
 						}
 						iShellPosition=SHELL_MENU_PROMPT;
 					}			
-					else if (iShellPosition==4){
+					else if (iShellPosition==SHELL_MENU_DCF_ON_OFF){
 						if(strcmp(sInput,sKeyYes)==0){
 							if(! bDCF77){
 								uart_puts(TERM_FG_GREEN_BRIGHT);
