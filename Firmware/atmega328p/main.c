@@ -518,7 +518,7 @@ char sParameter[10];
 .....
 */
 enum eShellMenuPosition{ 
-	SHELL_MENU_PROMPT=0, SHELL_MENU_SMT, SHELL_MENU_NST, SHELL_MENU_AST, SHELL_MENU_DCF_ON_OFF, SHELL_MENU_PST, SHELL_MENU_SSM
+	SHELL_MENU_PROMPT=0, SHELL_MENU_SMT, SHELL_MENU_NST, SHELL_MENU_AST, SHELL_MENU_DCF_ON_OFF, SHELL_MENU_PST, SHELL_MENU_SSM, SHELL_MENU_SPW
 };
 
 uint8_t iShellPosition=SHELL_MENU_PROMPT;
@@ -1242,7 +1242,7 @@ int main(void){
 						
 						else if (strcmp(sInput,"spw")==0){
 							// Ändern der Impulsweite der Ausgänge 
-							iShellPosition=7;
+							iShellPosition=SHELL_MENU_SPW;
 							uart_puts_p(prgsPulsWidthQuest);
 						}	
 						else if (strcmp(sInput,"stat")==0){
@@ -1497,7 +1497,7 @@ int main(void){
 						iShellPosition=SHELL_MENU_PROMPT;
 					}
 					
-					else if (iShellPosition==7){
+					else if (iShellPosition==SHELL_MENU_SPW){
 						if(fCheckAndConvertPulsWidth(sInput,&iTemp)){
 							iPulsWidthIn100ms=iTemp;
 							iPulsIntervalLengthInSec=CALC_PULSE_INTERVAL_LENGTH_IN_SEC(iPulsWidthIn100ms);
