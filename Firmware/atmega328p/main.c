@@ -527,7 +527,7 @@ uint8_t iShellPosition=SHELL_MENU_PROMPT;
 ...
 */
 enum eDisplayPage {
-	 DISPLAY_PAGE_TIME_ON_SLAVES=0,DISPLAY_PAGE_CLOCK_IS_SYNCING=1
+	 DISPLAY_PAGE_TIME_ON_SLAVES=0, DISPLAY_PAGE_CLOCK_IS_SYNCING=1, DISPLAY_PAGE_DCF_OP_MODE=2, DISPLAY_PAGE_DCF_STATUS=3, DISPLAY_PAGE_DCF_LAST_RESULT=4, DISPLAY_PAGE_DCF_RECEIVE_BIT_STATE=5
 };
 uint8_t iDisplayPage=DISPLAY_PAGE_TIME_ON_SLAVES;
 
@@ -672,7 +672,7 @@ int main(void){
 						iDisplayPage++;
 					}
 				}
-				if(iDisplayPage==2){
+				if(iDisplayPage==DISPLAY_PAGE_DCF_OP_MODE){
 					//lcd_clrscr();
 					//lcd_gotoxy(0,0);
 					//lcd_puts("DCF77: ");
@@ -692,7 +692,7 @@ int main(void){
 						fGetCenterAndFilledUpString((char*)sDCF77StateOff,sDisplayLine2,sizeof(sDisplayLine2)-1);
 					}
 				}	
-				if(iDisplayPage==3){
+				if(iDisplayPage==DISPLAY_PAGE_DCF_STATUS){
 					//lcd_clrscr();
 					//lcd_gotoxy(0,0);
 					//lcd_puts("DCF77 STATUS: ");
@@ -709,7 +709,7 @@ int main(void){
 						iDisplayPage++;
 					}
 				}				
-				if(iDisplayPage==4){
+				if(iDisplayPage==DISPLAY_PAGE_DCF_LAST_RESULT){
 					if(bDCF77){
 						//lcd_clrscr();
 						//lcd_gotoxy(0,0);
@@ -726,7 +726,7 @@ int main(void){
 						iDisplayPage++;
 					}
 				}
-				if(iDisplayPage==5){
+				if(iDisplayPage==DISPLAY_PAGE_DCF_RECEIVE_BIT_STATE){
 					if(bDCF77 && tDCF77DateTime.iDCF77Status==DCF77_SYNCING && iDCF77BitPointer>=1 && iDCF77BitPointer<=59){
 						//lcd_clrscr();
 						//fLCDPutStringCenter(sDCF77SyncStatus,0);
