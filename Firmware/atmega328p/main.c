@@ -527,7 +527,7 @@ uint8_t iShellPosition=SHELL_MENU_PROMPT;
 ...
 */
 enum eDisplayPage {
-	 DISPLAY_PAGE_TIME_ON_SLAVES=0, DISPLAY_PAGE_CLOCK_IS_SYNCING=1, DISPLAY_PAGE_DCF_OP_MODE=2, DISPLAY_PAGE_DCF_STATUS=3, DISPLAY_PAGE_DCF_LAST_RESULT=4, DISPLAY_PAGE_DCF_RECEIVE_BIT_STATE=5, DISPLAY_PAGE_DCF_SHOW_DATE_TIME=6, DISPLAY_PAGE_CLOCK_SYNC_MODE_12H_24H=7, DISPLAY_PAGE_INVALID=8
+	 DISPLAY_PAGE_TIME_ON_SLAVES=0, DISPLAY_PAGE_CLOCK_IS_SYNCING=1, DISPLAY_PAGE_DCF_OP_MODE=2, DISPLAY_PAGE_DCF_STATUS=3, DISPLAY_PAGE_DCF_LAST_RESULT=4, DISPLAY_PAGE_DCF_RECEIVE_BIT_STATE=5, DISPLAY_PAGE_DCF_SHOW_DATE_TIME=6, DISPLAY_PAGE_CLOCK_SYNC_MODE_12H_24H=7, DISPLAY_PAGE_INVALID=8, DISPLAY_PAGE_DCF_DEBUG_TIMING=9
 };
 uint8_t iDisplayPage=DISPLAY_PAGE_TIME_ON_SLAVES;
 
@@ -697,8 +697,8 @@ int main(void){
 					//lcd_gotoxy(0,0);
 					//lcd_puts("DCF77 STATUS: ");
 					//fLCDPutStringCenter(sDCF77State,0);
-					fGetCenterAndFilledUpString((char*)sDCF77State,sDisplayLine1,sizeof(sDisplayLine1)-1);
 					if(bDCF77){
+						fGetCenterAndFilledUpString((char*)sDCF77State,sDisplayLine1,sizeof(sDisplayLine1)-1);
 						fGetLastDCF77StatusString(tDCF77DateTime.iDCF77Status,sTemp);
 						//strcpy(sOutputLine,sTemp);
 						//lcd_puts(sOutputLine);
@@ -804,7 +804,9 @@ int main(void){
 					}
 					
 				}
-				if(iDisplayPage>=DISPLAY_PAGE_INVALID){
+				// Wenn Page invalid und nicht debug -> reset 
+				if(iDisplayPage>=DISPLAY_PAGE_INVALID && iDisplayPage!=DISPLAY_PAGE_DCF_DEBUG_TIMING)
+				{
 					iDisplayPage=DISPLAY_PAGE_TIME_ON_SLAVES;
 				}
 			/* EndStrings für die AUsgabe erzeugen */
@@ -981,11 +983,13 @@ int main(void){
 						if(bDCF77Debug==true && bDCF77==true)
 						{
 							bDCF77Debug=false;
+							iDisplayPage=DISPLAY_PAGE_TIME_ON_SLAVES;
 							uart_puts_p(prgsReturnOK);
 						}
 						else if(bDCF77==true)
 						{
 						    bDCF77Debug=true;	
+						    iDisplayPage=DISPLAY_PAGE_DCF_DEBUG_TIMING;
 						    uart_puts_p(prgsReturnOK);
 						}
 					}	
@@ -1731,6 +1735,7 @@ static void fExecuteEvery10telSecond(void){
 	if((iCountTimer0 % 5)==0){
 		// Toggle 1HZ PIN
 		TOGGLE_PIN(PORTD,PIN_1HZ_BLINK);
+		bUpdateDisplay=TRUE;
 	}	
 }
 static void fExecuteEverySecond(void){
@@ -1812,7 +1817,6 @@ static void fExecuteEverySecond(void){
 	if(tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds<0xffffffff){
 		tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds++;
 	}
-	bUpdateDisplay=TRUE;
 }
 
 // Liest von uart hängt die gelesen Zeichen an psInput an
