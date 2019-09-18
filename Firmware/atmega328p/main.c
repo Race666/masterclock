@@ -272,8 +272,6 @@ const char prgsDCF77NoRec[] PROGMEM = "Noch keine DCF77 Daten empfangen.";
 const char prgsDCF77Head[] PROGMEM = "DCF Sychnronistaion ist ";
 const char prgsDCF77QuestOn[] PROGMEM = "an. Ausschalten? (j|n): ";
 const char prgsDCF77QuestOff[] PROGMEM = "aus. Einschalten? (j|n): ";
-const char prgsDCF77DebugOn[] PROGMEM = "DCF debug aktiviert";
-const char prgsDCF77DebugOff[] PROGMEM = "DCF debug deaktiviert";
 const char prgsSetDCF77On[] PROGMEM = "DCF77 Synchronisation ein.\r\n";
 const char prgsSetDCF77Off[] PROGMEM = "DCF77 Synchronisation aus.\r\n";
 const char prgsSyncMode24hHead[] PROGMEM = "Syncmodus ist ";
@@ -388,8 +386,6 @@ const char prgsDCF77NoRec[] PROGMEM = "No DCF77 data received yet.";
 const char prgsDCF77Head[] PROGMEM = "DCF is ";
 const char prgsDCF77QuestOn[] PROGMEM = "on. Switch off? (y|n): ";
 const char prgsDCF77QuestOff[] PROGMEM = "off. Switch on? (y|n): ";
-const char prgsDCF77DebugOn[] PROGMEM = "DCF debug enabled";
-const char prgsDCF77DebugOff[] PROGMEM = "DCF debug disabled";
 const char prgsSetDCF77On[] PROGMEM = "Set dcf77 on.\r\n";
 const char prgsSetDCF77Off[] PROGMEM = "Set dcf77 off.\r\n";
 const char prgsSyncMode24hHead[] PROGMEM = "Syncmode is ";
@@ -972,7 +968,22 @@ int main(void){
 							uart_puts_p(prgsReturnERROR);
 						}
 						
-					}					
+					}
+					#if DCF_DEBUG
+					else if (strcmp(sInput,"_dbgdcf")==0){
+						if(bDCF77Debug==true && bDCF77==true)
+						{
+							bDCF77Debug=false;
+							uart_puts_p(prgsReturnOK);
+						}
+						else if(bDCF77==true)
+						{
+						    bDCF77Debug=true;	
+						    uart_puts_p(prgsReturnOK);
+						}
+						iMenuPosition=0;
+					}	
+					#endif										
 					else if (strcmp(sCommand,"_stat")==0){
 						// Get Version
 						if (strcmp(sParameter,"gv")==0){
@@ -1231,21 +1242,6 @@ int main(void){
 							iMenuPosition=7;
 							uart_puts_p(prgsPulsWidthQuest);
 						}	
-						#if DCF_DEBUG
-						else if (strcmp(sInput,"dbgdcf")==0){
-							if(bDCF77Debug==true && bDCF77==true)
-							{
-								bDCF77Debug=false;
-								uart_puts_p(prgsDCF77DebugOff);
-							}
-							else if(bDCF77==true)
-							{
-							    bDCF77Debug=true;	
-							    uart_puts_p(prgsDCF77DebugOn);
-							}
-							iMenuPosition=0;
-						}	
-						#endif
 						else if (strcmp(sInput,"stat")==0){
 								uart_puts(TERM_FG_WHITE_BRIGHT);	
 								uart_puts(sClockName);
