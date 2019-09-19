@@ -29,7 +29,7 @@ V1.09b3   05.09.2014 michael@albert-hetzles.de Pulse Delay wird dynamisch anhand
                                                Interval wird beim setzen des spw kommandos mitausgeben
 V1.09     17.09.2014 michael@albert-hetzles.de V1.09b3 -> V1.09WW											   
 V2.00b1   22.10.2018 michael@albert-hetzles.de Umstellung WinAVR -> Linux avr-gcc. Anpassung an avr-gcc 4.9.2 (Debian 9 stretch). Benötigte pakete apt-get install gcc-avr avr-libc
-V2.00b2   13.09.2019 michael@albert-hetzles.de Debug funktion für DCF77
+V2.00b2   13.09.2019 michael@albert-hetzles.de Debug Funktion für DCF77
 */
 /* TODO INTERRUPT */
 #include <avr/io.h>
@@ -42,12 +42,20 @@ V2.00b2   13.09.2019 michael@albert-hetzles.de Debug funktion für DCF77
 #include <lcd.h>
 #include "uart.h"
 #include "terminal.h"
-
+// For bool variables
+#define TRUE 1
+#define FALSE 0
 // Language
 // #define LANG_EN
 #define LANG_DE
+// End Konstanten für DCF77
+#define DCF_DEBUG TRUE
 // Version
+#if DCF_DEBUG
+char sFirmwareVersion[17]="V2.00b2-dbg";
+#else
 char sFirmwareVersion[17]="V2.00b2";
+#endif
 
 
 // Toogles a LED/Bit at Port and pin
@@ -108,12 +116,6 @@ char sFirmwareVersion[17]="V2.00b2";
 // Empfangsstatus blink=warte auf Daten, leuchtet=Empfange Daten
 #define PIN_LED_DCF77_CURRENT_STATUS PC1
 
-
-
-
-// For bool variables
-#define TRUE 1
-#define FALSE 0
 // UART, ECHO zurückschreiben
 #define UART_ECHO 1
 
@@ -147,8 +149,6 @@ char sFirmwareVersion[17]="V2.00b2";
 // Pegel für DCF In
 #define HIGH 1
 #define LOW 0
-// End Konstanten für DCF77
-#define DCF_DEBUG TRUE
 // Wie oft die Displayseite wechseln
 #define CHANGE_DISPLAY_PAGE_IN_SEC 5
 
@@ -272,6 +272,10 @@ const char prgsDCF77NoRec[] PROGMEM = "Noch keine DCF77 Daten empfangen.";
 const char prgsDCF77Head[] PROGMEM = "DCF Sychnronistaion ist ";
 const char prgsDCF77QuestOn[] PROGMEM = "an. Ausschalten? (j|n): ";
 const char prgsDCF77QuestOff[] PROGMEM = "aus. Einschalten? (j|n): ";
+#ifdef DCF_DEBUG
+const char prgsDCF77DbgPulse[] PROGMEM = "Puls :";
+const char prgsDCF77DbgPause[] PROGMEM = "Pause:";
+#endif
 const char prgsSetDCF77On[] PROGMEM = "DCF77 Synchronisation ein.\r\n";
 const char prgsSetDCF77Off[] PROGMEM = "DCF77 Synchronisation aus.\r\n";
 const char prgsSyncMode24hHead[] PROGMEM = "Syncmodus ist ";
@@ -386,6 +390,10 @@ const char prgsDCF77NoRec[] PROGMEM = "No DCF77 data received yet.";
 const char prgsDCF77Head[] PROGMEM = "DCF is ";
 const char prgsDCF77QuestOn[] PROGMEM = "on. Switch off? (y|n): ";
 const char prgsDCF77QuestOff[] PROGMEM = "off. Switch on? (y|n): ";
+#ifdef DCF_DEBUG
+const char prgsDCF77DbgPulse[] PROGMEM = "Pulse:";
+const char prgsDCF77DbgPause[] PROGMEM = "Pause:";
+#endif
 const char prgsSetDCF77On[] PROGMEM = "Set dcf77 on.\r\n";
 const char prgsSetDCF77Off[] PROGMEM = "Set dcf77 off.\r\n";
 const char prgsSyncMode24hHead[] PROGMEM = "Syncmode is ";
@@ -493,6 +501,8 @@ static void fGetLastDCF77ResultString(uint8_t iRes,char *psErrMsg);
 static void fGetLastDCF77StatusString(uint8_t iRes,char *psStatMsg);
 static void fGetShortDayString(uint8_t iDayNumber,char *psShortDay);
 static void fUInt8To2CharStr(uint8_t iNum, char *s2CharStr);
+static void fGetLeftAlignedFilledUpString(char *sIn, char *sOut,uint8_t iLength);
+static void fGetLeftRightAlignedFilledUpString(char *sInLeft,char *sInRight, char *sOut,uint8_t iLength);
 static void fLCDPutStringCenter(char *sOut,uint8_t iLineNumber);
 /* static void fCopyStringCenter(char *sString, char *sOut, uint8_t iMaxStrLength); */
 static void fGetCenterAndFilledUpString(char *sIn, char *sOut,uint8_t iLength);
@@ -546,7 +556,8 @@ uint8_t iDisplayPage=DISPLAY_PAGE_TIME_ON_SLAVES;
 volatile uint8_t bUpdateDisplay=FALSE;
 uint8_t iDisplayPageSecCount=0;
 // Temp Variable für Displayausgabe
-char sTemp[LCD_DISP_LENGTH+1]="";
+char sTemp1[LCD_DISP_LENGTH+1]="";
+char sTemp2[LCD_DISP_LENGTH+1]="";
 char sOutputLine[LCD_DISP_LENGTH+1]="";
 char sDisplayLine1[LCD_DISP_LENGTH+1]="";
 char sDisplayLine2[LCD_DISP_LENGTH+1]="";
@@ -710,11 +721,11 @@ int main(void){
 					//fLCDPutStringCenter(sDCF77State,0);
 					if(bDCF77){
 						fGetCenterAndFilledUpString((char*)sDCF77State,sDisplayLine1,sizeof(sDisplayLine1)-1);
-						fGetLastDCF77StatusString(tDCF77DateTime.iDCF77Status,sTemp);
-						//strcpy(sOutputLine,sTemp);
+						fGetLastDCF77StatusString(tDCF77DateTime.iDCF77Status,sTemp1);
+						//strcpy(sOutputLine,sTemp1);
 						//lcd_puts(sOutputLine);
 						//fLCDPutStringCenter(sOutputLine,1);
-						fGetCenterAndFilledUpString(sTemp,sDisplayLine2,sizeof(sDisplayLine2)-1);
+						fGetCenterAndFilledUpString(sTemp1,sDisplayLine2,sizeof(sDisplayLine2)-1);
 					}
 					else{
 						iDisplayPage++;
@@ -743,8 +754,8 @@ int main(void){
 						//fLCDPutStringCenter(sDCF77SyncStatus,0);
 						fGetCenterAndFilledUpString((char*)sDCF77SyncStatus,sDisplayLine1,sizeof(sDisplayLine1)-1);
 						strcpy(sOutputLine,"BIT:");
-						fUInt8To2CharStr(iDCF77BitPointer-1,sTemp);
-						strcat(sOutputLine,sTemp);
+						fUInt8To2CharStr(iDCF77BitPointer-1,sTemp1);
+						strcat(sOutputLine,sTemp1);
 						strcat(sOutputLine,"=");
 						if(aDCFData[iDCF77BitPointer-1]==HIGH){
 							//strcat(sOutputLine,"HIGH");
@@ -768,11 +779,11 @@ int main(void){
 					if(bDCF77 && tDCF77DateTime.iIsValidForSeconds>0){
 						//lcd_clrscr();
 						strcpy(sOutputLine,"DCF77:");
-						fUInt8To2CharStr(tDCF77DateTime.iHour,sTemp);
-						strcat(sOutputLine,sTemp);
+						fUInt8To2CharStr(tDCF77DateTime.iHour,sTemp1);
+						strcat(sOutputLine,sTemp1);
 						strcat(sOutputLine,":");
-						fUInt8To2CharStr(tDCF77DateTime.iMinute,sTemp);
-						strcat(sOutputLine,sTemp);
+						fUInt8To2CharStr(tDCF77DateTime.iMinute,sTemp1);
+						strcat(sOutputLine,sTemp1);
 						strcat(sOutputLine," ");
 						if(tDCF77DateTime.bMEZ){
 							strcat(sOutputLine,"MEZ");
@@ -784,14 +795,14 @@ int main(void){
 						fGetCenterAndFilledUpString(sOutputLine,sDisplayLine1,sizeof(sDisplayLine1)-1);
 						fGetShortDayString(tDCF77DateTime.iWeekday,sOutputLine);
 						strcat(sOutputLine," - ");
-						fUInt8To2CharStr(tDCF77DateTime.iDay,sTemp);
-						strcat(sOutputLine,sTemp);
+						fUInt8To2CharStr(tDCF77DateTime.iDay,sTemp1);
+						strcat(sOutputLine,sTemp1);
 						strcat(sOutputLine,".");
-						fUInt8To2CharStr(tDCF77DateTime.iMonth,sTemp);
-						strcat(sOutputLine,sTemp);
+						fUInt8To2CharStr(tDCF77DateTime.iMonth,sTemp1);
+						strcat(sOutputLine,sTemp1);
 						strcat(sOutputLine,".");
-						fUInt8To2CharStr(tDCF77DateTime.iYear,sTemp);
-						strcat(sOutputLine,sTemp);
+						fUInt8To2CharStr(tDCF77DateTime.iYear,sTemp1);
+						strcat(sOutputLine,sTemp1);
 						//fLCDPutStringCenter(sOutputLine,1);
 						fGetCenterAndFilledUpString(sOutputLine,sDisplayLine2,sizeof(sDisplayLine2)-1);
 					}
@@ -815,11 +826,19 @@ int main(void){
 					}
 					
 				}
-				#if DCF_DEBUG	
+#if DCF_DEBUG	
 				if(iDisplayPage==DISPLAY_PAGE_DCF_DEBUG_TIMING){
-					
+					strcpy_P(sOutputLine,prgsDCF77DbgPulse);
+					utoa(tDCF77Debug.iPulseWidth,sTemp1,10);
+					strcat(sOutputLine,sTemp1);
+					fGetLeftAlignedFilledUpString(sOutputLine,sDisplayLine1,sizeof(sDisplayLine1)-1);
+			
+					strcpy_P(sOutputLine,prgsDCF77DbgPause);
+					utoa(tDCF77Debug.iPauseWidth,sTemp1,10);
+					strcat(sOutputLine,sTemp1);
+					fGetLeftAlignedFilledUpString(sOutputLine,sDisplayLine1,sizeof(sDisplayLine1)-1);					
 				}
-				#endif
+#endif
 			/* EndStrings für die AUsgabe erzeugen */
 			// Strings auf Display ausgeben
 			if(bUpdateDisplay && bLCDDisplayOn){
@@ -989,7 +1008,7 @@ int main(void){
 						}
 						
 					}
-					#if DCF_DEBUG
+#if DCF_DEBUG
 					else if (strcmp(sInput,"_dbgdcf")==0){
 						if(bDCF77Debug==true && bDCF77==true)
 						{
@@ -1004,7 +1023,7 @@ int main(void){
 						    uart_puts_p(prgsReturnOK);
 						}
 					}	
-					#endif										
+#endif										
 					else if (strcmp(sCommand,"_stat")==0){
 						// Get Version
 						if (strcmp(sParameter,"gv")==0){
@@ -1021,14 +1040,14 @@ int main(void){
 						else if (strcmp(sParameter,"gst")==0){
 						// Block 1 SlaveTimes
 							// Hour, Minute, Second
-							itoa(stClientTime.iHour,sTemp,10);
-							strcpy(sOutputLine,sTemp);
+							itoa(stClientTime.iHour,sTemp1,10);
+							strcpy(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(stClientTime.iMinute,sTemp,10);
-							strcat(sOutputLine,sTemp);
+							itoa(stClientTime.iMinute,sTemp1,10);
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(stClientTime.iSecond,sTemp,10);
-							strcat(sOutputLine,sTemp);
+							itoa(stClientTime.iSecond,sTemp1,10);
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndBlock,2);
 							uart_puts(sOutputLine);
 							uart_puts_p(prgsReturnOK);
@@ -1037,14 +1056,14 @@ int main(void){
 						else if (strcmp(sParameter,"gnt")==0){
 						// Block 2 New Clienttimes
 							// Hour, Minute, Second
-							itoa(stNewTimeForClients.iHour,sTemp,10);
-							strcpy(sOutputLine,sTemp);
+							itoa(stNewTimeForClients.iHour,sTemp1,10);
+							strcpy(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(stNewTimeForClients.iMinute,sTemp,10);
-							strcat(sOutputLine,sTemp);
+							itoa(stNewTimeForClients.iMinute,sTemp1,10);
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(stNewTimeForClients.iSecond,sTemp,10);
-							strcat(sOutputLine,sTemp);
+							itoa(stNewTimeForClients.iSecond,sTemp1,10);
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndBlock,2);
 							uart_puts(sOutputLine);
 							uart_puts_p(prgsReturnOK);
@@ -1053,45 +1072,45 @@ int main(void){
 						else if (strcmp(sParameter,"gd7")==0){
 						// Block 3 DCF77
 							// Year, Month, day, weekday, Hour, Minute, Second, MEZ, Valid4Seconds, LastResult, Status, LetzterKomplett Empfang in Sekunden 
-							itoa(tDCF77DateTime.iYear,sTemp,10);	
-							strcpy(sOutputLine,sTemp);
+							itoa(tDCF77DateTime.iYear,sTemp1,10);	
+							strcpy(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(tDCF77DateTime.iMonth,sTemp,10);
-							strcat(sOutputLine,sTemp);
-							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							uart_puts(sOutputLine);
-							itoa(tDCF77DateTime.iDay,sTemp,10);	
-							strcpy(sOutputLine,sTemp);
-							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(tDCF77DateTime.iWeekday,sTemp,10);	
-							strcat(sOutputLine,sTemp);
-							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(tDCF77DateTime.iHour,sTemp,10);
-							strcat(sOutputLine,sTemp);
+							itoa(tDCF77DateTime.iMonth,sTemp1,10);
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
 							uart_puts(sOutputLine);
-							itoa(tDCF77DateTime.iMinute,sTemp,10);	
-							strcpy(sOutputLine,sTemp);
+							itoa(tDCF77DateTime.iDay,sTemp1,10);	
+							strcpy(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(tDCF77DateTime.iSecond,sTemp,10);	
-							strcat(sOutputLine,sTemp);
+							itoa(tDCF77DateTime.iWeekday,sTemp1,10);	
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(tDCF77DateTime.bMEZ,sTemp,10);
-							strcat(sOutputLine,sTemp);
-							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							uart_puts(sOutputLine);
-							itoa(tDCF77DateTime.iIsValidForSeconds,sTemp,10);	
-							strcpy(sOutputLine,sTemp);
-							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(tDCF77DateTime.iDCF77LastResult,sTemp,10);	
-							strcat(sOutputLine,sTemp);
-							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(tDCF77DateTime.iDCF77Status,sTemp,10);
-							strcat(sOutputLine,sTemp);
+							itoa(tDCF77DateTime.iHour,sTemp1,10);
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
 							uart_puts(sOutputLine);
-							ltoa(tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds,sTemp,10);
-							strcpy(sOutputLine,sTemp);
+							itoa(tDCF77DateTime.iMinute,sTemp1,10);	
+							strcpy(sOutputLine,sTemp1);
+							strncat(sOutputLine,sPCControlCharEndParameter,2);
+							itoa(tDCF77DateTime.iSecond,sTemp1,10);	
+							strcat(sOutputLine,sTemp1);
+							strncat(sOutputLine,sPCControlCharEndParameter,2);
+							itoa(tDCF77DateTime.bMEZ,sTemp1,10);
+							strcat(sOutputLine,sTemp1);
+							strncat(sOutputLine,sPCControlCharEndParameter,2);
+							uart_puts(sOutputLine);
+							itoa(tDCF77DateTime.iIsValidForSeconds,sTemp1,10);	
+							strcpy(sOutputLine,sTemp1);
+							strncat(sOutputLine,sPCControlCharEndParameter,2);
+							itoa(tDCF77DateTime.iDCF77LastResult,sTemp1,10);	
+							strcat(sOutputLine,sTemp1);
+							strncat(sOutputLine,sPCControlCharEndParameter,2);
+							itoa(tDCF77DateTime.iDCF77Status,sTemp1,10);
+							strcat(sOutputLine,sTemp1);
+							strncat(sOutputLine,sPCControlCharEndParameter,2);
+							uart_puts(sOutputLine);
+							ltoa(tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds,sTemp1,10);
+							strcpy(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndBlock,2);							
 							uart_puts(sOutputLine);		
 							uart_puts_p(prgsReturnOK);
@@ -1100,13 +1119,13 @@ int main(void){
 						else if (strcmp(sParameter,"gda")==0){
 						// Block 4 DCF77 Bitarray
 							// Bitpointer, Bit 0....59
-							itoa(iDCF77BitPointer,sTemp,10);	
-							strcpy(sOutputLine,sTemp);
+							itoa(iDCF77BitPointer,sTemp1,10);	
+							strcpy(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
 							uart_puts(sOutputLine);
 							for(iTemp=0;iTemp<=59;iTemp++){
-								itoa(aDCFData[iTemp],sTemp,10);	
-								strcpy(sOutputLine,sTemp);
+								itoa(aDCFData[iTemp],sTemp1,10);	
+								strcpy(sOutputLine,sTemp1);
 								if(iTemp!=59){
 									strncat(sOutputLine,sPCControlCharEndParameter,2);
 								}
@@ -1119,27 +1138,27 @@ int main(void){
 						else if (strcmp(sParameter,"glp")==0){
 						// Block 5 Last Powerfault
 							// Year, Month, Day, Weekday, Hour, Minute, MEZ
-							itoa(eeprom_read_byte(&ee_iPowerFaultYear),sTemp,10);	
-							strcpy(sOutputLine,sTemp);
+							itoa(eeprom_read_byte(&ee_iPowerFaultYear),sTemp1,10);	
+							strcpy(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(eeprom_read_byte(&ee_iPowerFaultMonth),sTemp,10);	
-							strcat(sOutputLine,sTemp);
+							itoa(eeprom_read_byte(&ee_iPowerFaultMonth),sTemp1,10);	
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(eeprom_read_byte(&ee_iPowerFaultDay),sTemp,10);
-							strcat(sOutputLine,sTemp);
+							itoa(eeprom_read_byte(&ee_iPowerFaultDay),sTemp1,10);
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
 							uart_puts(sOutputLine);
-							itoa(eeprom_read_byte(&ee_iPowerFaultWeekday),sTemp,10);	
-							strcpy(sOutputLine,sTemp);
+							itoa(eeprom_read_byte(&ee_iPowerFaultWeekday),sTemp1,10);	
+							strcpy(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(eeprom_read_byte(&ee_iPowerFaultHour),sTemp,10);	
-							strcat(sOutputLine,sTemp);
+							itoa(eeprom_read_byte(&ee_iPowerFaultHour),sTemp1,10);	
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(eeprom_read_byte(&ee_iPowerFaultMinute),sTemp,10);
-							strcat(sOutputLine,sTemp);
+							itoa(eeprom_read_byte(&ee_iPowerFaultMinute),sTemp1,10);
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(eeprom_read_byte(&ee_bMEZ),sTemp,10);
-							strcat(sOutputLine,sTemp);
+							itoa(eeprom_read_byte(&ee_bMEZ),sTemp1,10);
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndBlock,2);							
 							uart_puts(sOutputLine);	
 							uart_puts_p(prgsReturnOK);
@@ -1147,27 +1166,27 @@ int main(void){
 						else if (strcmp(sParameter,"ggs")==0){
 						// Block 6 Get Global State
 							// Clock Paused; New Clock Time Inc; Ready4Sync; iTimeDiff; DCF77 On;SyncModus 24h;Ausgang Pulsweite
-							itoa(stClientTime.bIncTime,sTemp,10);
-							strcpy(sOutputLine,sTemp);
+							itoa(stClientTime.bIncTime,sTemp1,10);
+							strcpy(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(stNewTimeForClients.bIncTime,sTemp,10);
-							strcat(sOutputLine,sTemp);
+							itoa(stNewTimeForClients.bIncTime,sTemp1,10);
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(stNewTimeForClients.bReady4Sync,sTemp,10);
-							strcat(sOutputLine,sTemp);
+							itoa(stNewTimeForClients.bReady4Sync,sTemp1,10);
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
 							uart_puts(sOutputLine);
-							itoa(iTimeDiff,sTemp,10);
-							strcpy(sOutputLine,sTemp);
+							itoa(iTimeDiff,sTemp1,10);
+							strcpy(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(bDCF77,sTemp,10);	
-							strcat(sOutputLine,sTemp);
+							itoa(bDCF77,sTemp1,10);	
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(bSyncMode24h,sTemp,10);	
-							strcat(sOutputLine,sTemp);
+							itoa(bSyncMode24h,sTemp1,10);	
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(iPulsWidthIn100ms,sTemp,10);	
-							strcat(sOutputLine,sTemp);
+							itoa(iPulsWidthIn100ms,sTemp1,10);	
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndBlock,2);							
 							uart_puts(sOutputLine);
 							uart_puts_p(prgsReturnOK);
@@ -1175,11 +1194,11 @@ int main(void){
 						else if (strcmp(sParameter,"gls")==0){
 						// Block 7 SlaveTime at Last Powerfault 
 							// Hour, Minute
-							itoa(eeprom_read_byte(&ee_iHourClientTime),sTemp,10);	
-							strcpy(sOutputLine,sTemp);
+							itoa(eeprom_read_byte(&ee_iHourClientTime),sTemp1,10);	
+							strcpy(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndParameter,2);
-							itoa(eeprom_read_byte(&ee_iMinuteClientTime),sTemp,10);	
-							strcat(sOutputLine,sTemp);
+							itoa(eeprom_read_byte(&ee_iMinuteClientTime),sTemp1,10);	
+							strcat(sOutputLine,sTemp1);
 							strncat(sOutputLine,sPCControlCharEndBlock,2);							
 							uart_puts(sOutputLine);	
 							uart_puts_p(prgsReturnOK);
@@ -1278,9 +1297,9 @@ int main(void){
 									fUpdateTimeString(sTime,&stNewTimeForClients);
 									uart_puts_p(prgsSyncingTo);	
 									uart_puts(sTime);	
-									itoa(iTimeDiff,sTemp,10);
+									itoa(iTimeDiff,sTemp1,10);
 									uart_puts(" ");
-									uart_puts(sTemp); 
+									uart_puts(sTemp1); 
 									uart_puts_p(prgsMinutesLeft);
 								}
 								else{
@@ -1304,15 +1323,15 @@ int main(void){
 										uart_puts_p(prgsDCF77NoRec);
 									}
 									uart_puts_p(prgsDCF77LastRes);
-									fGetLastDCF77ResultString(tDCF77DateTime.iDCF77LastResult,sTemp);
-									uart_puts(sTemp);
+									fGetLastDCF77ResultString(tDCF77DateTime.iDCF77LastResult,sTemp1);
+									uart_puts(sTemp1);
 									uart_puts_p(prgsDCF77LastStat);
-									fGetLastDCF77StatusString(tDCF77DateTime.iDCF77Status,sTemp);
-									uart_puts(sTemp);
+									fGetLastDCF77StatusString(tDCF77DateTime.iDCF77Status,sTemp1);
+									uart_puts(sTemp1);
 									if(tDCF77DateTime.iDCF77Status==DCF77_SYNCING && iDCF77BitPointer>0){
 										uart_puts_p(prgsCurrentBit);
-										itoa(iDCF77BitPointer-1,sTemp,10);
-										uart_puts(sTemp);
+										itoa(iDCF77BitPointer-1,sTemp1,10);
+										uart_puts(sTemp1);
 										if(aDCFData[iDCF77BitPointer-1]==HIGH){
 											//strcat(sOutputLine,"HIGH");
 											uart_puts("=1");
@@ -1324,8 +1343,8 @@ int main(void){
 									}
 									if(tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds!=0xffffffff){
 										uart_puts_p(prgsDCF77LastData);
-										ltoa(tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds,sTemp,10);
-										uart_puts(sTemp);
+										ltoa(tDCF77DateTime.iDCF77LastReceivedDataPaketInSeconds,sTemp1,10);
+										uart_puts(sTemp1);
 										uart_puts_p(prgsSeconds);
 									}
 									uart_puts("\r\n");
@@ -1351,8 +1370,8 @@ int main(void){
 										tDisplayLastPowerFault.iMinute=eeprom_read_byte(&ee_iPowerFaultMinute);
 										tDisplayLastPowerFault.iHour=eeprom_read_byte(&ee_iPowerFaultHour);
 										tDisplayLastPowerFault.iSecond=0;
-										fUpdateTimeString(sTemp,&tDisplayLastPowerFault);
-										uart_puts(sTemp);
+										fUpdateTimeString(sTemp1,&tDisplayLastPowerFault);
+										uart_puts(sTemp1);
 									}
 									uart_puts("\r\n");
 								}
@@ -1361,8 +1380,8 @@ int main(void){
 									tDisplayClientTimeLastPowerFault.iMinute=eeprom_read_byte(&ee_iMinuteClientTime);
 									tDisplayClientTimeLastPowerFault.iHour=eeprom_read_byte(&ee_iHourClientTime);
 									tDisplayClientTimeLastPowerFault.iSecond=0;
-									fUpdateTimeString(sTemp,&tDisplayClientTimeLastPowerFault);
-									uart_puts(sTemp);
+									fUpdateTimeString(sTemp1,&tDisplayClientTimeLastPowerFault);
+									uart_puts(sTemp1);
 									uart_puts("\r\n");
 								}
 								uart_puts_p(prgsLCDDisplayIs);
@@ -1374,12 +1393,12 @@ int main(void){
 								}
 								uart_puts("\r\n");
 								uart_puts_p(prgsOutputPulseWidth);
-								itoa(iPulsWidthIn100ms,sTemp,10);
-								uart_puts(sTemp);
+								itoa(iPulsWidthIn100ms,sTemp1,10);
+								uart_puts(sTemp1);
 								uart_puts("00ms\r\n");
 								uart_puts_p(prgsOutputPulseInterval);
-								itoa(iPulsIntervalLengthInSec,sTemp,10);
-								uart_puts(sTemp);
+								itoa(iPulsIntervalLengthInSec,sTemp1,10);
+								uart_puts(sTemp1);
 								uart_puts("sec\r\n");
 								
 						}
@@ -1522,12 +1541,12 @@ int main(void){
 							eeprom_write_byte(&ee_iPulsWidthIn100ms,iTemp);
 							uart_puts(TERM_FG_GREEN_BRIGHT);
 							uart_puts_p(prgsPulsWidthSetOutPre);
-							itoa(iPulsWidthIn100ms,sTemp,10);
-							uart_puts(sTemp);
+							itoa(iPulsWidthIn100ms,sTemp1,10);
+							uart_puts(sTemp1);
 							uart_puts_p(prgsPulsWidthSetOutPost);
 							uart_puts_p(prgsPulsIntervalSetOutPre);
-							itoa(iPulsIntervalLengthInSec,sTemp,10);
-							uart_puts(sTemp);
+							itoa(iPulsIntervalLengthInSec,sTemp1,10);
+							uart_puts(sTemp1);
 							uart_puts_p(prgsPulsIntervalSetOutPost);							
 							uart_puts(TERM_RESET);
 						}
@@ -2331,6 +2350,37 @@ static void fGetLeftAlignedFilledUpString(char *sIn, char *sOut,uint8_t iLength)
 			pStrpos++;
 		}	
 	}
+}
+static void fGetLeftRightAlignedFilledUpString(char *sInLeft,char *sInRight, char *sOut,uint8_t iLength){
+	uint8_t iLoop;
+	char *pStrpos;
+	sOut[0]='\0';
+	pStrpos=sOut;
+	// Clear String with whitespaces
+	for(iLoop=0;iLoop<iLength;iLoop++){strcat(sOut,"\x20");}
+	// Leftaligned string
+	for(iLoop=0;iLoop<strlen(sInLeft);iLoop++){
+		if(iLoop<iLength)
+		{
+			*pStrpos=sInLeft[iLoop];
+			pStrpos++;
+		}	
+	}
+	// Rightaligned string
+	pStrpos=sOut;
+	// Set to max
+	uint8_t iRightLength=iLength;
+	if(strlen(sInRight)<iLength)
+	{	
+		// Start Pos
+		pStrpos+=iLength-strlen(sInRight);
+		// Length
+		iRightLength=strlen(sInRight);
+	}		
+	for(iLoop=0;iLoop<iRightLength;iLoop++){
+		*pStrpos=sInRight[iLoop];
+		pStrpos++;
+	}	
 }
 /* Not used
 static void fCopyStringCenter(char *sString, char *sOut, uint8_t iMaxStrLength){
