@@ -48,11 +48,11 @@ V2.00b2   13.09.2019 michael@albert-hetzles.de Debug Funktion für DCF77
 // Language
 // #define LANG_EN
 #define LANG_DE
-// End Konstanten für DCF77
+// Konstanten für DCF77
 #define DCF_DEBUG TRUE
 // Version
 #if DCF_DEBUG
-char sFirmwareVersion[17]="V2.00b2-dbg";
+char sFirmwareVersion[17]="V2.00b2-DBG";
 #else
 char sFirmwareVersion[17]="V2.00b2";
 #endif
@@ -501,8 +501,8 @@ static void fGetLastDCF77ResultString(uint8_t iRes,char *psErrMsg);
 static void fGetLastDCF77StatusString(uint8_t iRes,char *psStatMsg);
 static void fGetShortDayString(uint8_t iDayNumber,char *psShortDay);
 static void fUInt8To2CharStr(uint8_t iNum, char *s2CharStr);
-static void fGetLeftAlignedFilledUpString(char *sIn, char *sOut,uint8_t iLength);
-static void fGetLeftRightAlignedFilledUpString(char *sInLeft,char *sInRight, char *sOut,uint8_t iLength);
+static void fGetLeftAlignedFilledUpString(char *sIn, char *sOut,uint8_t iLength) __attribute__((unused));
+static void fGetLeftRightAlignedFilledUpString(char *sInLeft,char *sInRight, char *sOut,uint8_t iLength) __attribute__((unused));
 static void fLCDPutStringCenter(char *sOut,uint8_t iLineNumber);
 /* static void fCopyStringCenter(char *sString, char *sOut, uint8_t iMaxStrLength); */
 static void fGetCenterAndFilledUpString(char *sIn, char *sOut,uint8_t iLength);
@@ -829,14 +829,18 @@ int main(void){
 #if DCF_DEBUG	
 				if(iDisplayPage==DISPLAY_PAGE_DCF_DEBUG_TIMING){
 					strcpy_P(sOutputLine,prgsDCF77DbgPulse);
-					utoa(tDCF77Debug.iPulseWidth,sTemp1,10);
+					itoa(tDCF77Debug.iPulseWidth,sTemp1,10);
 					strcat(sOutputLine,sTemp1);
-					fGetLeftAlignedFilledUpString(sOutputLine,sDisplayLine1,sizeof(sDisplayLine1)-1);
-			
+					itoa(tDCF77Debug.DCF77Status,sTemp2,10);
+					// String Links Puls: , Rechts DCF77Status
+					fGetLeftRightAlignedFilledUpString(sOutputLine,sTemp2,sDisplayLine1,sizeof(sDisplayLine1)-1);
+					
 					strcpy_P(sOutputLine,prgsDCF77DbgPause);
-					utoa(tDCF77Debug.iPauseWidth,sTemp1,10);
+					itoa(tDCF77Debug.iPauseWidth,sTemp1,10);
 					strcat(sOutputLine,sTemp1);
-					fGetLeftAlignedFilledUpString(sOutputLine,sDisplayLine1,sizeof(sDisplayLine1)-1);					
+					itoa(tDCF77Debug.DCF77LastResult,sTemp2,10);
+					// String Links Pause: , Rechts DCF77LastResult
+					fGetLeftRightAlignedFilledUpString(sOutputLine,sTemp2,sDisplayLine2,sizeof(sDisplayLine2)-1);					
 				}
 #endif
 			/* EndStrings für die AUsgabe erzeugen */
