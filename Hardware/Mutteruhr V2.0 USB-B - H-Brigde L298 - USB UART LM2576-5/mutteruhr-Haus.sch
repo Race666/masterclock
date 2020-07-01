@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="7.7.0">
+<eagle version="7.6.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="yes"/>
@@ -27652,9 +27652,6 @@ nominal inductance, magnetically screened</description>
 </net>
 <net name="N$24" class="0">
 <segment>
-<pinref part="IC5" gate="G$1" pin="VUSB"/>
-<wire x1="203.2" y1="96.52" x2="223.52" y2="96.52" width="0.1524" layer="91"/>
-<wire x1="223.52" y1="96.52" x2="223.52" y2="91.44" width="0.1524" layer="91"/>
 <wire x1="223.52" y1="91.44" x2="223.52" y2="88.9" width="0.1524" layer="91"/>
 <wire x1="223.52" y1="88.9" x2="236.22" y2="88.9" width="0.1524" layer="91"/>
 <pinref part="C5" gate="G$1" pin="1"/>
@@ -27663,7 +27660,6 @@ nominal inductance, magnetically screened</description>
 <junction x="236.22" y="88.9"/>
 <pinref part="IC5" gate="G$1" pin="VDD"/>
 <wire x1="203.2" y1="91.44" x2="223.52" y2="91.44" width="0.1524" layer="91"/>
-<junction x="223.52" y="91.44"/>
 <pinref part="X5" gate="G$1" pin="VBUS"/>
 </segment>
 </net>

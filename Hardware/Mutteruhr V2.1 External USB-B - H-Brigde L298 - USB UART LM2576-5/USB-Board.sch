@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="7.7.0">
+<eagle version="7.6.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -9995,9 +9995,6 @@ Source: www.kingbright.com</description>
 </net>
 <net name="N$24" class="0">
 <segment>
-<pinref part="IC5" gate="G$1" pin="VUSB"/>
-<wire x1="76.2" y1="53.34" x2="96.52" y2="53.34" width="0.1524" layer="91"/>
-<wire x1="96.52" y1="53.34" x2="96.52" y2="48.26" width="0.1524" layer="91"/>
 <wire x1="96.52" y1="48.26" x2="96.52" y2="45.72" width="0.1524" layer="91"/>
 <wire x1="96.52" y1="45.72" x2="109.22" y2="45.72" width="0.1524" layer="91"/>
 <pinref part="C5" gate="G$1" pin="1"/>
@@ -10006,7 +10003,6 @@ Source: www.kingbright.com</description>
 <junction x="109.22" y="45.72"/>
 <pinref part="IC5" gate="G$1" pin="VDD"/>
 <wire x1="76.2" y1="48.26" x2="96.52" y2="48.26" width="0.1524" layer="91"/>
-<junction x="96.52" y="48.26"/>
 <pinref part="X5" gate="G$1" pin="VBUS"/>
 </segment>
 </net>
