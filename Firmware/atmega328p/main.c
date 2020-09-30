@@ -30,6 +30,7 @@ V1.09b3   05.09.2014 michael@albert-hetzles.de Pulse Delay wird dynamisch anhand
 V1.09     17.09.2014 michael@albert-hetzles.de V1.09b3 -> V1.09WW											   
 V2.00b1   22.10.2018 michael@albert-hetzles.de Umstellung WinAVR -> Linux avr-gcc. Anpassung an avr-gcc 4.9.2 (Debian 9 stretch). Benötigte pakete apt-get install gcc-avr avr-libc
 V2.00b2   13.09.2019 michael@albert-hetzles.de Debug Funktion für DCF77
+V2.00b3   14.09.2020 michael@albert-hetzles.de Sekunden Counter mit DCF synchronsieren
 */
 /* TODO INTERRUPT */
 #include <avr/io.h>
@@ -49,12 +50,12 @@ V2.00b2   13.09.2019 michael@albert-hetzles.de Debug Funktion für DCF77
 // #define LANG_EN
 #define LANG_DE
 // Konstanten für DCF77
-#define DCF_DEBUG TRUE
+#define DCF_DEBUG FALSE
 // Version
 #if DCF_DEBUG
-char sFirmwareVersion[17]="V2.00b2-DBG";
+char sFirmwareVersion[17]="V2.00b3-DBG";
 #else
-char sFirmwareVersion[17]="V2.00b2";
+char sFirmwareVersion[17]="V2.00b3";
 #endif
 
 
@@ -168,6 +169,7 @@ typedef struct{
 	uint8_t iSecond;
 	uint8_t bReady4Sync;
 	uint8_t bIncTime;
+	uint8_t bSyncExecuteEverySecond;
 } TTime;
 // Begin Strukturen für DCF77
 // DCF77 Datatype, iIsValidForSeconds gibt die Zahl der Sekunden an für die die DCF Zeit gültig ist
@@ -483,14 +485,14 @@ char prgsSetSyncMode24hOff[] PROGMEM = "12h Stunden Modus aktiviert.\r\n";
 // functions prototypes
 static void fExecuteEverySecond(void);
 static void fExecuteEvery10telSecond(void);
-static void fUpdateTimeString(char *psTime,TTime *ptClientTime);
+static void fUpdateTimeString(char *psTime,volatile TTime *ptClientTime);
 static void fInitIoports(void);
 static void fInitLEDIOPorts(void);
 static void fInitCounter(void);
 int fReadUART(char *psInput,uint8_t iMaxInCharacters);
-static int fConvertInput2Time(char *psIn,TTime *ptTime);
-static int fTimeDiffFor12hScope(TTime *ttIsTime, TTime *ttNewTime);
-static int fTimeDiffFor24hScope(TTime *ttIsTime, TTime *ttNewTime);
+static int fConvertInput2Time(char *psIn,volatile TTime *ptTime);
+static int fTimeDiffFor12hScope(TTime *ttIsTime, volatile TTime *ttNewTime);
+static int fTimeDiffFor24hScope(TTime *ttIsTime, volatile TTime *ttNewTime);
 static void fIncClientTime(TTime *ttClientTime,uint8_t bIncMinutes);
 // DCF Funktionen
 static void fInitDCF77(void);
@@ -511,8 +513,8 @@ static uint8_t fCheckAndConvertPulsWidth(char *sIn,uint8_t *iOut);
 /* static void fPrintIntToUART(char *sIn,int16_t iIn); */ 
 // end functions prototypes
 
-TTime stClientTime={0,0,0,FALSE,TRUE}, tDisplayLastPowerFault={0,0,0,FALSE,FALSE} ,tDisplayClientTimeLastPowerFault={0,0,0,FALSE,FALSE};
-TTime stNewTimeForClients={0,0,0,FALSE,FALSE};
+TTime stClientTime={0,0,0,FALSE,TRUE,FALSE}, tDisplayLastPowerFault={0,0,0,FALSE,FALSE,FALSE} ,tDisplayClientTimeLastPowerFault={0,0,0,FALSE,FALSE,FALSE};
+volatile TTime stNewTimeForClients={0,0,0,FALSE,FALSE,FALSE};
 
 char sTime[17]="--:--:--";
 char sDCFDateTime[34]="---------- --.--.---- --:-- ----";
@@ -1642,7 +1644,7 @@ static void fUInt8To2CharStr(uint8_t iNum, char *s2CharStr){
 			strcpy(s2CharStr,sTmp);
 		}
 }
-static void fUpdateTimeString(char *psTime,TTime *ptClientTime){
+static void fUpdateTimeString(char *psTime,volatile TTime *ptClientTime){
 		char sTmp[3]="";
 		fUInt8To2CharStr(ptClientTime->iHour,sTmp);
 		strcpy(psTime,sTmp);
@@ -1738,6 +1740,7 @@ ISR(TIMER0_OVF_vect){
 }
 static void fExecuteEvery10telSecond(void){
 	static uint8_t iCountTimer0=0;
+	static uint8_t iCountTimer1HZ=0;
 	//uint8_t iOverflow=10;
 	// Teiler durch 10
 	if(iPulseWidthEven>0){
@@ -1758,6 +1761,12 @@ static void fExecuteEvery10telSecond(void){
 	else{
 		RESET_PULSE_ODD;
 	}	
+	// Synccounter mit DCF
+	if(stNewTimeForClients.bSyncExecuteEverySecond==TRUE)
+	{	
+		iCountTimer0=0;	
+		stNewTimeForClients.bSyncExecuteEverySecond=FALSE;
+	}	
 	if(iCountTimer0<9){
 		iCountTimer0++;
 	}
@@ -1766,7 +1775,12 @@ static void fExecuteEvery10telSecond(void){
 		// Funktion alle 1sec aufrufen
 		fExecuteEverySecond();
 	}
-	if((iCountTimer0 % 5)==0){
+	// 1Hz Ausgang
+	if(iCountTimer1HZ<9)
+		iCountTimer1HZ++;
+	else
+		iCountTimer1HZ=0;
+	if((iCountTimer1HZ % 5)==0){
 		// Toggle 1HZ PIN
 		TOGGLE_PIN(PORTD,PIN_1HZ_BLINK);
 		bUpdateDisplay=TRUE;
@@ -1915,7 +1929,7 @@ int fReadUART(char *psInput,uint8_t iMaxInCharacters){
 			}
 		}
 }
-static int fConvertInput2Time(char *psIn,TTime *ptTime){
+static int fConvertInput2Time(char *psIn,volatile TTime *ptTime){
 	char *psToken;
 	char* pStrErrPos; 
 	uint8_t iConvertHour,iConvertMinute;
@@ -1970,7 +1984,7 @@ Return: die Differenz die den Clientuhren aufgeholt werden muß als positive Zahl
 		die Differenz die von den Clientuhren gewarten werden muß als negative Zahl
 		Die max Wartezeit kann mit iMaxWait festgelegt werden
 */
-static int fTimeDiffFor12hScope(TTime *ttIsTime, TTime *ttNewTime){
+static int fTimeDiffFor12hScope(TTime *ttIsTime, volatile TTime *ttNewTime){
 	int iIsTimeInMinutes, iNewTimeInMinutes, iDiffMinutes;
 	int iMaxWait=61;
 	iIsTimeInMinutes=ttIsTime->iMinute;
@@ -2006,7 +2020,7 @@ Return: die Differenz die den Clientuhren aufgeholt werden muß als positive Zahl
 		die Differenz die von den Clientuhren gewarten werden muß als negative Zahl
 		Die max Wartezeit kann mit iMaxWait festgelegt werden
 */
-static int fTimeDiffFor24hScope(TTime *ttIsTime, TTime *ttNewTime){
+static int fTimeDiffFor24hScope(TTime *ttIsTime, volatile TTime *ttNewTime){
 	int iIsTimeInMinutes, iNewTimeInMinutes, iDiffMinutes;
 	int iMaxWait=61;
 	iIsTimeInMinutes=ttIsTime->iMinute;
@@ -2147,6 +2161,9 @@ ISR(INT0_vect){
 					stNewTimeForClients.iSecond=0;
 					stNewTimeForClients.bReady4Sync=TRUE;
 					stNewTimeForClients.bIncTime=TRUE;
+					// Synccounter with DCF
+					TCNT0=0;
+					stNewTimeForClients.bSyncExecuteEverySecond=TRUE;
 				}
 			}
 			iDCF77BitPointer=0;
@@ -2159,7 +2176,7 @@ ISR(INT0_vect){
 	else{
 		// Timer anhalten
 		TIMER1_STOP;
-		// Pausenzeit speichern
+		// Pulsweite speichern
 		iPulseWidth=TCNT1;
 #if DCF_DEBUG		
 		tDCF77Debug.iPulseWidth=iPulseWidth;
