@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "Mutteruhr-rescue")(type "KiCad")(uri "${KIPRJMOD}/Mutteruhr-rescue.kicad_sym")(options "")(descr ""))
+)

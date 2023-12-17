@@ -1,0 +1,244 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L Connector_Generic:Conn_01x16 J2
+U 1 1 60684A63
+P 3850 3750
+F 0 "J2" H 3930 3742 50  0000 L CNN
+F 1 "Display R->L" H 3930 3651 50  0000 L CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x16_P2.54mm_Vertical" H 3850 3750 50  0001 C CNN
+F 3 "~" H 3850 3750 50  0001 C CNN
+	1    3850 3750
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector_Generic:Conn_01x16 J4
+U 1 1 60686F5D
+P 4600 3750
+F 0 "J4" H 4680 3742 50  0000 L CNN
+F 1 "Display L->R" H 4680 3651 50  0000 L CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x16_P2.54mm_Vertical" H 4600 3750 50  0001 C CNN
+F 3 "~" H 4600 3750 50  0001 C CNN
+	1    4600 3750
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3650 3050 4400 3050
+Wire Wire Line
+	3650 3150 4400 3150
+Wire Wire Line
+	3650 3250 4400 3250
+Wire Wire Line
+	3650 3350 4400 3350
+Wire Wire Line
+	3650 3450 4400 3450
+Wire Wire Line
+	3650 3550 4400 3550
+Wire Wire Line
+	3650 3650 4400 3650
+Wire Wire Line
+	3650 3750 4400 3750
+Wire Wire Line
+	3650 3850 4400 3850
+Wire Wire Line
+	3650 3950 4400 3950
+Wire Wire Line
+	3650 4050 4400 4050
+Wire Wire Line
+	3650 4150 4400 4150
+Wire Wire Line
+	3650 4250 4400 4250
+Wire Wire Line
+	3650 4350 4400 4350
+Wire Wire Line
+	3650 4450 4000 4450
+Wire Wire Line
+	4400 4550 4350 4550
+$Comp
+L Connector_Generic:Conn_02x01 J3
+U 1 1 606896B8
+P 4200 4900
+F 0 "J3" H 4250 5117 50  0000 C CNN
+F 1 "Hintergrund 5V" H 4250 5026 50  0000 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical" H 4200 4900 50  0001 C CNN
+F 3 "~" H 4200 4900 50  0001 C CNN
+	1    4200 4900
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector_Generic:Conn_02x07_Odd_Even J1
+U 1 1 60689F7C
+P 2350 3800
+F 0 "J1" H 2400 4317 50  0000 C CNN
+F 1 "Ext Header " H 2400 4226 50  0000 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_2x07_P2.54mm_Vertical" H 2350 3800 50  0001 C CNN
+F 3 "~" H 2350 3800 50  0001 C CNN
+	1    2350 3800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3650 3050 3250 3050
+Connection ~ 3650 3050
+Wire Wire Line
+	3650 3250 3250 3250
+Connection ~ 3650 3250
+Wire Wire Line
+	3650 3350 3250 3350
+Connection ~ 3650 3350
+Wire Wire Line
+	3650 3450 3250 3450
+Connection ~ 3650 3450
+Wire Wire Line
+	3650 3550 3250 3550
+Connection ~ 3650 3550
+Wire Wire Line
+	3650 3650 3250 3650
+Connection ~ 3650 3650
+Wire Wire Line
+	3650 3750 3250 3750
+Connection ~ 3650 3750
+Wire Wire Line
+	3650 3850 3250 3850
+Connection ~ 3650 3850
+Wire Wire Line
+	3650 3950 3250 3950
+Connection ~ 3650 3950
+Wire Wire Line
+	3650 4050 3250 4050
+Connection ~ 3650 4050
+Wire Wire Line
+	3650 4150 3250 4150
+Connection ~ 3650 4150
+Wire Wire Line
+	3650 4250 3250 4250
+Connection ~ 3650 4250
+Wire Wire Line
+	3650 4350 3250 4350
+Connection ~ 3650 4350
+Wire Wire Line
+	3650 4450 3250 4450
+Connection ~ 3650 4450
+Wire Wire Line
+	2150 3500 2000 3500
+Wire Wire Line
+	2150 3600 2000 3600
+Wire Wire Line
+	2150 3700 2000 3700
+Wire Wire Line
+	2150 3800 2000 3800
+Wire Wire Line
+	2150 3900 2000 3900
+Wire Wire Line
+	2150 4000 2000 4000
+Wire Wire Line
+	2150 4100 2000 4100
+Wire Wire Line
+	2650 3500 2800 3500
+Wire Wire Line
+	2650 3600 2800 3600
+Wire Wire Line
+	2650 3700 2800 3700
+Wire Wire Line
+	2650 3800 2800 3800
+Wire Wire Line
+	2650 3900 2800 3900
+Wire Wire Line
+	2650 4000 2800 4000
+Wire Wire Line
+	2650 4100 2800 4100
+Wire Wire Line
+	3650 4550 3250 4550
+Connection ~ 3650 4550
+Text GLabel 3250 3750 0    50   Input ~ 0
+D1
+Text GLabel 2800 3800 2    50   Input ~ 0
+D1
+Text GLabel 3250 3850 0    50   Input ~ 0
+D2
+Text GLabel 2000 3900 0    50   Input ~ 0
+D2
+Text GLabel 3250 3950 0    50   Input ~ 0
+D3
+Text GLabel 2800 3900 2    50   Input ~ 0
+D3
+Text GLabel 3250 4050 0    50   Input ~ 0
+D4
+Text GLabel 2000 4000 0    50   Input ~ 0
+D4
+Text GLabel 2800 4000 2    50   Input ~ 0
+D5
+Text GLabel 3250 4150 0    50   Input ~ 0
+D5
+Text GLabel 2000 4100 0    50   Input ~ 0
+D6
+Text GLabel 3250 4250 0    50   Input ~ 0
+D6
+Text GLabel 3250 4350 0    50   Input ~ 0
+D7
+Text GLabel 2800 4100 2    50   Input ~ 0
+D7
+Text GLabel 2000 3800 0    50   Input ~ 0
+D0
+Text GLabel 3250 3650 0    50   Input ~ 0
+D0
+Text GLabel 2800 3700 2    50   Input ~ 0
+E
+Text GLabel 3250 3550 0    50   Input ~ 0
+E
+Text GLabel 2000 3700 0    50   Input ~ 0
+RW
+Text GLabel 3250 3450 0    50   Input ~ 0
+RW
+Text GLabel 3250 3350 0    50   Input ~ 0
+RS
+Text GLabel 2800 3600 2    50   Input ~ 0
+RS
+Text GLabel 3250 3250 0    50   Input ~ 0
+Kontrast
+Text GLabel 2000 3600 0    50   Input ~ 0
+Kontrast
+Connection ~ 3650 3150
+Wire Wire Line
+	3650 3150 3250 3150
+Text GLabel 3250 3150 0    50   Input ~ 0
+5V
+Text GLabel 2800 3500 2    50   Input ~ 0
+5V
+Text GLabel 3250 3050 0    50   Input ~ 0
+GND
+Text GLabel 2000 3500 0    50   Input ~ 0
+GND
+Wire Wire Line
+	4350 4550 4350 4700
+Wire Wire Line
+	4350 4700 4500 4700
+Wire Wire Line
+	4500 4700 4500 4900
+Connection ~ 4350 4550
+Wire Wire Line
+	4350 4550 3650 4550
+Wire Wire Line
+	4000 4900 4000 4450
+Connection ~ 4000 4450
+Wire Wire Line
+	4000 4450 4400 4450
+Text Notes 3850 5100 0    50   ~ 0
+Hintergrundbeleuchtung\n
+Text Label 3250 4450 0    50   ~ 0
+5V-Hintergrundbeleuchtung
+Text Label 3250 4550 0    50   ~ 0
+GND-Hintergrundbeleuchtung
+$EndSCHEMATC
